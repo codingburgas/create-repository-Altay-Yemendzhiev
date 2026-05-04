@@ -1,0 +1,12 @@
+{
+  "version": "0.2.1",
+  "defaults": {},
+  "configurations": [
+    {
+      "type": "default",
+      "project": "Lapis-technologies-main\\CMakeLists.txt",
+      "projectTarget": "InventoryManager.exe",
+      "name": "InventoryManager.exe"
+    }
+  ]
+}
