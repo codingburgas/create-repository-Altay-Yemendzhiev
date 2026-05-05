@@ -15,4 +15,11 @@ add_executable(InventoryManager
 
 target_include_directories(InventoryManager PRIVATE include)
 
-target_compile_definitions(InventoryManager PRIVATE INVENTORY_MANAGER_SEPARATE_BUILD)
+add_executable(InventoryTests
+    tests/data_tests.cpp
+    tests/logic_tests.cpp
+    src/data.cpp
+    src/logic.cpp
+)
+
+target_include_directories(InventoryTests PRIVATE include)
