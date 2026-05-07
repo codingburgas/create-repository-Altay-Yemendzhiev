@@ -148,7 +148,7 @@ img{max-width:100%;height:auto;border-radius:6px;display:block}
 
 /* Scroll reveal animations
    - Add `reveal` to any element you want to animate on entering the viewport.
-   - The small JS observer (provided separately) toggles `is-visible`
+   - The small JS observer (provided separately) toggles `is-visible`.
 */
 .reveal{
   opacity:0;
