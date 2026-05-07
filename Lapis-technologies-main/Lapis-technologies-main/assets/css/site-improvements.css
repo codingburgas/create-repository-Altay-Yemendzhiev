@@ -13,6 +13,11 @@
   --fs-h1: 2.25rem; /* 36px */
   --fs-h2: 1.5rem;  /* 24px */
   --fs-h3: 1.125rem;/* 18px */
+
+  /* Motion tokens */
+  --motion-duration: 320ms;
+  --motion-ease: cubic-bezier(.2,.9,.2,1);
+  --motion-fast: 180ms;
 }
 
 *{box-sizing:border-box}
@@ -20,11 +25,12 @@ html,body{height:100%}
 body{
   margin:0;
   font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-  font-size:var(--fs-base); 
+  font-size:var(--fs-base);
   color:var(--color-text);
   background:var(--color-bg);
   line-height:1.5;
   -webkit-font-smoothing:antialiased;
+  -webkit-font-feature-settings: "liga" 1;
 }
 
 /* Layout container */
@@ -47,7 +53,9 @@ p{margin:0 0 var(--gap) 0; color:var(--color-muted)}
   border-radius:var(--radius);
   padding:calc(var(--gap) * 1);
   box-shadow:0 6px 18px rgba(13, 22, 33, 0.06);
+  transition:transform var(--motion-duration) var(--motion-ease), box-shadow var(--motion-duration) var(--motion-ease);
 }
+.card:hover{ transform:translateY(-6px); box-shadow:0 12px 30px rgba(13,22,33,0.08) }
 
 /* Buttons */
 .btn{
@@ -60,18 +68,63 @@ p{margin:0 0 var(--gap) 0; color:var(--color-muted)}
   border:0;
   cursor:pointer;
   font-weight:600;
-  transition:transform .08s ease, box-shadow .12s ease;
+  transition:transform var(--motion-fast) var(--motion-ease), box-shadow var(--motion-duration) var(--motion-ease), background-color var(--motion-fast) var(--motion-ease);
+  position:relative;
+  overflow:hidden; /* for subtle ripple */
+  will-change:transform, box-shadow;
+  -webkit-tap-highlight-color: transparent;
 }
+
+/* Subtle ripple using pseudo-element centered in button (works without JS) */
+.btn::after{
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  background: radial-gradient(circle, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.06) 40%, transparent 60%);
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+  transition: transform 400ms var(--motion-ease), opacity 300ms var(--motion-ease);
+  pointer-events: none;
+  border-radius: 50%;
+}
+
+/* Primary button */
 .btn-primary{
   background:var(--color-primary);
   color:white;
   box-shadow:0 6px 12px rgba(10,132,255,0.12);
 }
-.btn-primary:hover{transform:translateY(-2px)}
+.btn-primary:hover{
+  transform:translateY(-3px) scale(1.01);
+  box-shadow:0 14px 28px rgba(10,132,255,0.14);
+}
+.btn-primary:active{
+  transform:translateY(0) scale(.995);
+}
+.btn-primary:active::after{
+  width: 220%;
+  height: 220%;
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+  transition: transform 420ms var(--motion-ease), opacity 420ms var(--motion-ease);
+}
+
+/* Ghost button */
 .btn-ghost{
   background:transparent;
   color:var(--color-text);
   border:1px solid rgba(15,23,35,0.06);
+}
+.btn-ghost:hover{ transform:translateY(-2px) }
+
+/* Focus styles (use focus-visible to avoid mouse focus outlines) */
+:focus-visible{
+  outline: 3px solid color-mix(in srgb, var(--color-primary) 30%, white);
+  outline-offset: 3px;
+  border-radius: 6px;
 }
 
 /* Responsive grid */
@@ -93,6 +146,39 @@ p{margin:0 0 var(--gap) 0; color:var(--color-muted)}
 .center{text-align:center}
 img{max-width:100%;height:auto;border-radius:6px;display:block}
 
-/* Accessibility & preferences */
-:focus{outline:3px solid color-mix(in srgb, var(--color-primary) 30%, white); outline-offset:2px}
-@media (prefers-reduced-motion: reduce){ *{transition:none!important} }
+/* Scroll reveal animations
+   - Add `reveal` to any element you want to animate on entering the viewport.
+   - The small JS observer (provided separately) toggles `is-visible`.
+*/
+.reveal{
+  opacity:0;
+  transform: translateY(12px) scale(.995);
+  transition: opacity var(--motion-duration) var(--motion-ease), transform var(--motion-duration) var(--motion-ease);
+  will-change: opacity, transform;
+  pointer-events: none;
+}
+.reveal.is-visible{
+  opacity:1;
+  transform: none;
+  pointer-events: auto;
+}
+
+/* Variant: slower fade for large elements */
+.reveal.fade-slow{
+  transition-duration: 520ms;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce){
+  :root{
+    --motion-duration: 0ms;
+    --motion-fast: 0ms;
+  }
+  *{ transition: none !important; animation: none !important; }
+  .reveal{ opacity:1; transform:none; pointer-events:auto; }
+}
+
+/* Accessibility & preferences (fallback) */
+@media (prefers-reduced-motion: no-preference){
+  /* keep transitions enabled */
+}
