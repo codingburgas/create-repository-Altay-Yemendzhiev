@@ -3,13 +3,15 @@
 #include "../include/logic.h"
 
 #include <cstdlib>
+#include <cstring>
 #include <iomanip>
 #include <iostream>
 #include <limits>
 
 enum
 {
-    PRODUCTS_PER_PAGE = 20
+    PRODUCTS_PER_PAGE = 20,
+    PRODUCT_NAME_COLUMN_WIDTH = 34
 };
 
 /*
@@ -74,8 +76,25 @@ static void displayTitle(const char* title)
  */
 static void displayProductRow(int number, Product product, bool highlight)
 {
+    char displayName[PRODUCT_NAME_COLUMN_WIDTH + 1] = "";
+    const int nameLength = static_cast<int>(std::strlen(product.name));
+
+    if (nameLength > PRODUCT_NAME_COLUMN_WIDTH)
+    {
+        std::strncpy(displayName, product.name, PRODUCT_NAME_COLUMN_WIDTH - 3);
+        displayName[PRODUCT_NAME_COLUMN_WIDTH - 3] = '.';
+        displayName[PRODUCT_NAME_COLUMN_WIDTH - 2] = '.';
+        displayName[PRODUCT_NAME_COLUMN_WIDTH - 1] = '.';
+        displayName[PRODUCT_NAME_COLUMN_WIDTH] = '\0';
+    }
+    else
+    {
+        std::strncpy(displayName, product.name, PRODUCT_NAME_COLUMN_WIDTH);
+        displayName[PRODUCT_NAME_COLUMN_WIDTH] = '\0';
+    }
+
     std::cout << std::left << std::setw(6) << number;
-    std::cout << std::left << std::setw(34) << product.name;
+    std::cout << std::left << std::setw(PRODUCT_NAME_COLUMN_WIDTH) << displayName;
     std::cout << std::right << std::setw(10) << std::fixed
         << std::setprecision(2) << product.price;
     std::cout << std::right << std::setw(10) << product.quantity;
@@ -122,7 +141,7 @@ static void displayProducts(int highlightIndex)
         std::cout << " of " << count << " products\n\n";
 
         std::cout << std::left << std::setw(6) << "No.";
-        std::cout << std::left << std::setw(34) << "Name";
+        std::cout << std::left << std::setw(PRODUCT_NAME_COLUMN_WIDTH) << "Name";
         std::cout << std::right << std::setw(10) << "Price";
         std::cout << std::right << std::setw(10) << "Quantity";
         std::cout << "\n";
@@ -267,7 +286,7 @@ static void handleSearch(int* foundIndex)
 
     std::cout << "\nFound product:\n\n";
     std::cout << std::left << std::setw(6) << "No.";
-    std::cout << std::left << std::setw(34) << "Name";
+    std::cout << std::left << std::setw(PRODUCT_NAME_COLUMN_WIDTH) << "Name";
     std::cout << std::right << std::setw(10) << "Price";
     std::cout << std::right << std::setw(10) << "Quantity";
     std::cout << "\n";

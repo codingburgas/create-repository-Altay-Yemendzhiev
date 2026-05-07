@@ -1,0 +1,80 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Inventory Flowchart">
+    <mxGraphModel dx="900" dy="620" grid="1" gridSize="10" guides="1"
+      tooltips="1" connect="1" arrows="1" fold="1" page="1"
+      pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="start" value="Start application"
+          style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;"
+          vertex="1" parent="1">
+          <mxGeometry x="330" y="40" width="180" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="load" value="Load products from CSV"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;"
+          vertex="1" parent="1">
+          <mxGeometry x="310" y="140" width="220" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="menu" value="Show menu"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;"
+          vertex="1" parent="1">
+          <mxGeometry x="330" y="240" width="180" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="choice" value="User choice"
+          style="rhombus;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;"
+          vertex="1" parent="1">
+          <mxGeometry x="340" y="340" width="160" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="action" value="Run selected action&#xa;show, add, sort, search, total, update, delete"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;"
+          vertex="1" parent="1">
+          <mxGeometry x="270" y="490" width="300" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="save" value="Save products to CSV"
+          style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;"
+          vertex="1" parent="1">
+          <mxGeometry x="310" y="620" width="220" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="end" value="Exit"
+          style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;"
+          vertex="1" parent="1">
+          <mxGeometry x="350" y="730" width="140" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1" style="endArrow=block;html=1;rounded=0;"
+          edge="1" parent="1" source="start" target="load">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" style="endArrow=block;html=1;rounded=0;"
+          edge="1" parent="1" source="load" target="menu">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3" style="endArrow=block;html=1;rounded=0;"
+          edge="1" parent="1" source="menu" target="choice">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e4" value="1-10" style="endArrow=block;html=1;rounded=0;"
+          edge="1" parent="1" source="choice" target="action">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e5" value="return" style="endArrow=block;html=1;rounded=0;"
+          edge="1" parent="1" source="action" target="menu">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="650" y="525"/>
+              <mxPoint x="650" y="270"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e6" value="0" style="endArrow=block;html=1;rounded=0;"
+          edge="1" parent="1" source="choice" target="save">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e7" style="endArrow=block;html=1;rounded=0;"
+          edge="1" parent="1" source="save" target="end">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

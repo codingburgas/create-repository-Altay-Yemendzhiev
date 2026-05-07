@@ -1,6 +1,44 @@
 #include "../include/logic.h"
 #include "../include/presentation.h"
 
+#include <fstream>
+
+/*
+ * Purpose: Checks whether a file can be opened for reading.
+ * Parameters: filePath - path to inspect.
+ * Return value: true when the file exists and can be read.
+ */
+static bool canReadFile(const char* filePath)
+{
+    std::ifstream file(filePath);
+    return file.good();
+}
+
+/*
+ * Purpose: Finds the default product CSV from common run locations.
+ * Parameters: None.
+ * Return value: Path to the first readable default CSV.
+ */
+static const char* findDefaultInventoryFile()
+{
+    static const char* paths[] = {
+        "resources/products.csv",
+        "../resources/products.csv",
+        "../../resources/products.csv",
+        "../../../resources/products.csv"
+    };
+
+    for (const char* path : paths)
+    {
+        if (canReadFile(path))
+        {
+            return path;
+        }
+    }
+
+    return paths[0];
+}
+
 /*
  * Purpose: Runs the terminal inventory application.
  * Parameters: argc - argument count, argv - optional CSV path as argv[1].
@@ -8,7 +46,7 @@
  */
 int main(int argc, char* argv[])
 {
-    const char* inventoryFilePath = "resources/products.csv";
+    const char* inventoryFilePath = findDefaultInventoryFile();
 
     if (argc > 1 && argv[1] != nullptr && argv[1][0] != '\0')
     {

@@ -15,6 +15,12 @@ add_executable(InventoryManager
 
 target_include_directories(InventoryManager PRIVATE include)
 
+add_custom_command(TARGET InventoryManager POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/resources
+        $<TARGET_FILE_DIR:InventoryManager>/resources
+)
+
 add_executable(InventoryTests
     tests/data_tests.cpp
     tests/logic_tests.cpp
@@ -23,3 +29,9 @@ add_executable(InventoryTests
 )
 
 target_include_directories(InventoryTests PRIVATE include)
+
+add_custom_command(TARGET InventoryTests POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/resources
+        $<TARGET_FILE_DIR:InventoryTests>/resources
+)

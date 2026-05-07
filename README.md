@@ -46,6 +46,12 @@ project-root/
     └── products.csv
 ```
 
+The repository intentionally has only 8 `.cpp` and `.h` files. Build folders,
+Visual Studio files, executables, and large dependency source drops are ignored.
+When Dear ImGui is added, use a Git submodule, package manager, or CMake download
+inside the ignored build folder instead of copying the full ImGui source into a
+normal commit.
+
 ## Architecture
 
 - Presentation layer: `presentation.h` and `presentation.cpp`
