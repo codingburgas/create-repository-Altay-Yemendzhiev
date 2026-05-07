@@ -1,4 +1,4 @@
-# Inventory Management System
+# Lapis Technologies
 
 Dear ImGui version of a C++ inventory management project for 9th grade.
 The project follows the required three-layer architecture.

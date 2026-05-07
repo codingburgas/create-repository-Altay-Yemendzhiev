@@ -1,4 +1,4 @@
-# User Guide
+# Lapis Technologies User Guide
 
 Run the application to open the Dear ImGui window.
 

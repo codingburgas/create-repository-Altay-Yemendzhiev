@@ -36,6 +36,16 @@ enum language
     languageCount
 };
 
+enum navPanel
+{
+    noPanel,
+    settingsPanel,
+    addPanel,
+    editPanel,
+    sortPanel,
+    filePanel
+};
+
 enum appTheme
 {
     calmNightTheme,
@@ -610,7 +620,7 @@ void renderUI(const char* inventoryFilePath)
 
     HWND window = CreateWindowW(
         windowClass.lpszClassName,
-        L"Inventory Manager",
+        L"Lapis Technologies",
         WS_OVERLAPPEDWINDOW,
         100,
         100,
@@ -646,6 +656,7 @@ void renderUI(const char* inventoryFilePath)
 
     bool done = false;
     int currentLanguage = englishLanguage;
+    int activePanel = noPanel;
     int selectedIndex = -1;
     int sortFieldChoice = sortByPrice;
     int sortAlgorithmChoice = quickSortAlgorithm;
@@ -692,195 +703,225 @@ void renderUI(const char* inventoryFilePath)
                 | ImGuiWindowFlags_NoResize
         );
 
-        ImGui::TextColored(themePalettes[currentTheme].buttonHover, "%s", t.title);
-        ImGui::SameLine();
-        ImGui::TextDisabled("  %s: %d", t.products, getProductCountForDisplay());
+        ImGui::BeginChild(
+            "navbar",
+            ImVec2(0.0f, 82.0f),
+            true,
+            ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse
+        );
 
-        ImGui::BeginChild("navbar", ImVec2(0.0f, 58.0f), true);
-        if (ImGui::Button(t.theme, ImVec2(128.0f, 0.0f)))
+        const ImVec2 logoStart = ImGui::GetCursorScreenPos();
+        const ImVec2 logoEnd = ImVec2(logoStart.x + 46.0f, logoStart.y + 46.0f);
+        ImDrawList* drawList = ImGui::GetWindowDrawList();
+        drawList->AddRectFilled(
+            logoStart,
+            logoEnd,
+            ImGui::GetColorU32(themePalettes[currentTheme].button),
+            10.0f
+        );
+        drawList->AddRect(
+            logoStart,
+            logoEnd,
+            ImGui::GetColorU32(themePalettes[currentTheme].accent),
+            10.0f,
+            0,
+            2.0f
+        );
+        drawList->AddText(
+            ImVec2(logoStart.x + 12.0f, logoStart.y + 12.0f),
+            ImGui::GetColorU32(themePalettes[currentTheme].text),
+            "LT"
+        );
+        ImGui::Dummy(ImVec2(56.0f, 48.0f));
+        ImGui::SameLine();
+        ImGui::BeginGroup();
+        ImGui::Text("Lapis Technologies");
+        ImGui::TextDisabled("%s: %d  |  %s: %s", t.products, getProductCountForDisplay(), t.status, statusText);
+        ImGui::EndGroup();
+
+        ImGui::SameLine();
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 22.0f);
+
+        if (ImGui::Button(t.theme, ImVec2(118.0f, 0.0f)))
         {
-            ImGui::OpenPopup("settingsPopup");
+            activePanel = activePanel == settingsPanel ? noPanel : settingsPanel;
         }
         ImGui::SameLine();
-        if (ImGui::Button(t.addProduct, ImVec2(150.0f, 0.0f)))
+        if (ImGui::Button(t.addProduct, ImVec2(144.0f, 0.0f)))
         {
-            ImGui::OpenPopup("addPopup");
+            activePanel = activePanel == addPanel ? noPanel : addPanel;
         }
         ImGui::SameLine();
-        if (ImGui::Button(t.updateQuantity, ImVec2(170.0f, 0.0f)))
+        if (ImGui::Button(t.updateQuantity, ImVec2(166.0f, 0.0f)))
         {
-            ImGui::OpenPopup("editPopup");
+            activePanel = activePanel == editPanel ? noPanel : editPanel;
         }
         ImGui::SameLine();
-        if (ImGui::Button(t.sortProducts, ImVec2(150.0f, 0.0f)))
+        if (ImGui::Button(t.sortProducts, ImVec2(142.0f, 0.0f)))
         {
-            ImGui::OpenPopup("sortPopup");
+            activePanel = activePanel == sortPanel ? noPanel : sortPanel;
         }
         ImGui::SameLine();
-        if (ImGui::Button(t.save, ImVec2(120.0f, 0.0f)))
+        if (ImGui::Button(t.save, ImVec2(104.0f, 0.0f)))
         {
-            ImGui::OpenPopup("filePopup");
+            activePanel = activePanel == filePanel ? noPanel : filePanel;
         }
-        ImGui::SameLine();
-        ImGui::TextDisabled("%s: %s", t.status, statusText);
         ImGui::EndChild();
 
-        if (ImGui::BeginPopup("settingsPopup"))
+        if (activePanel != noPanel)
         {
-            ImGui::TextUnformatted(t.theme);
-            if (ImGui::BeginCombo("##themeCombo", themePalettes[currentTheme].name))
+            ImGui::BeginChild(
+                "activePanel",
+                ImVec2(0.0f, 142.0f),
+                true,
+                ImGuiWindowFlags_NoScrollbar
+            );
+
+            if (activePanel == settingsPanel)
             {
-                for (int i = 0; i < themeCount; ++i)
+                ImGui::SetNextItemWidth(260.0f);
+                if (ImGui::BeginCombo(t.theme, themePalettes[currentTheme].name))
                 {
-                    if (ImGui::Selectable(themePalettes[i].name, currentTheme == i))
+                    for (int i = 0; i < themeCount; ++i)
                     {
-                        currentTheme = i;
-                        applyAppTheme(currentTheme);
+                        if (ImGui::Selectable(themePalettes[i].name, currentTheme == i))
+                        {
+                            currentTheme = i;
+                            applyAppTheme(currentTheme);
+                        }
                     }
-                }
-                ImGui::EndCombo();
-            }
-
-            ImGui::Spacing();
-            ImGui::TextUnformatted(t.languageLabel);
-            if (ImGui::BeginCombo("##languageCombo", texts[currentLanguage].languageName))
-            {
-                for (int i = 0; i < languageCount; ++i)
-                {
-                    const bool selected = currentLanguage == i;
-
-                    if (ImGui::Selectable(texts[i].languageName, selected))
-                    {
-                        currentLanguage = i;
-                    }
-
-                    if (selected)
-                    {
-                        ImGui::SetItemDefaultFocus();
-                    }
+                    ImGui::EndCombo();
                 }
 
-                ImGui::EndCombo();
-            }
-            ImGui::EndPopup();
-        }
-
-        if (ImGui::BeginPopup("addPopup"))
-        {
-            ImGui::TextUnformatted(t.addProduct);
-            ImGui::InputText(t.productName, newName, sizeof(newName));
-            ImGui::InputFloat(t.price, &newPrice, 0.10f, 1.0f, "%.2f");
-            ImGui::InputInt(t.quantity, &newQuantity);
-
-            if (ImGui::Button(t.add, ImVec2(220.0f, 0.0f)))
-            {
-                if (addNewProduct(newName, newPrice, newQuantity))
+                ImGui::SameLine();
+                ImGui::SetNextItemWidth(260.0f);
+                if (ImGui::BeginCombo(t.languageLabel, texts[currentLanguage].languageName))
                 {
-                    copyText(statusText, t.productAdded);
-                    newName[0] = '\0';
-                    newPrice = 1.0f;
-                    newQuantity = 1;
-                    ImGui::CloseCurrentPopup();
-                }
-                else
-                {
-                    copyText(statusText, t.invalidInput);
+                    for (int i = 0; i < languageCount; ++i)
+                    {
+                        if (ImGui::Selectable(texts[i].languageName, currentLanguage == i))
+                        {
+                            currentLanguage = i;
+                        }
+                    }
+
+                    ImGui::EndCombo();
                 }
             }
-            ImGui::EndPopup();
-        }
-
-        if (ImGui::BeginPopup("editPopup"))
-        {
-            if (selectedIndex >= 0)
+            else if (activePanel == addPanel)
             {
-                product selectedItem = {};
-                getProductForDisplay(selectedIndex, &selectedItem);
-                ImGui::TextUnformatted(selectedItem.name);
-                ImGui::Text("%s: %.2f", t.price, selectedItem.price);
-                ImGui::InputInt(t.quantity, &editQuantity);
+                ImGui::SetNextItemWidth(360.0f);
+                ImGui::InputText(t.productName, newName, sizeof(newName));
+                ImGui::SameLine();
+                ImGui::SetNextItemWidth(130.0f);
+                ImGui::InputFloat(t.price, &newPrice, 0.10f, 1.0f, "%.2f");
+                ImGui::SameLine();
+                ImGui::SetNextItemWidth(130.0f);
+                ImGui::InputInt(t.quantity, &newQuantity);
+                ImGui::SameLine();
 
-                if (ImGui::Button(t.updateQuantity, ImVec2(220.0f, 0.0f)))
+                if (ImGui::Button(t.add, ImVec2(130.0f, 0.0f)))
                 {
-                    if (updateProductQuantity(selectedIndex, editQuantity))
+                    if (addNewProduct(newName, newPrice, newQuantity))
                     {
-                        copyText(statusText, t.quantityUpdated);
+                        copyText(statusText, t.productAdded);
+                        newName[0] = '\0';
+                        newPrice = 1.0f;
+                        newQuantity = 1;
                     }
                     else
                     {
                         copyText(statusText, t.invalidInput);
                     }
                 }
-
-                if (ImGui::Button(t.deleteProduct, ImVec2(220.0f, 0.0f)))
+            }
+            else if (activePanel == editPanel)
+            {
+                if (selectedIndex >= 0)
                 {
-                    if (deleteProductByIndex(selectedIndex))
+                    product selectedItem = {};
+                    getProductForDisplay(selectedIndex, &selectedItem);
+                    ImGui::TextUnformatted(selectedItem.name);
+                    ImGui::SameLine();
+                    ImGui::TextDisabled("%.2f", selectedItem.price);
+                    ImGui::SetNextItemWidth(150.0f);
+                    ImGui::InputInt(t.quantity, &editQuantity);
+                    ImGui::SameLine();
+
+                    if (ImGui::Button(t.updateQuantity, ImVec2(170.0f, 0.0f)))
                     {
-                        selectedIndex = -1;
-                        copyText(statusText, t.productDeleted);
-                        ImGui::CloseCurrentPopup();
+                        if (updateProductQuantity(selectedIndex, editQuantity))
+                        {
+                            copyText(statusText, t.quantityUpdated);
+                        }
+                        else
+                        {
+                            copyText(statusText, t.invalidInput);
+                        }
+                    }
+
+                    ImGui::SameLine();
+
+                    if (ImGui::Button(t.deleteProduct, ImVec2(150.0f, 0.0f)))
+                    {
+                        if (deleteProductByIndex(selectedIndex))
+                        {
+                            selectedIndex = -1;
+                            copyText(statusText, t.productDeleted);
+                        }
                     }
                 }
+                else
+                {
+                    ImGui::TextWrapped("%s", t.selectRow);
+                }
             }
-            else
+            else if (activePanel == sortPanel)
             {
-                ImGui::TextWrapped("%s", t.selectRow);
+                ImGui::SetNextItemWidth(220.0f);
+                renderLocalizedCombo(t.sortField, &sortFieldChoice, t.sortByPrice, t.sortByQuantity);
+                ImGui::SameLine();
+                ImGui::SetNextItemWidth(220.0f);
+                renderLocalizedCombo(t.sortAlgorithm, &sortAlgorithmChoice, t.quickSort, t.bogoSort);
+                ImGui::SameLine();
+
+                if (ImGui::Button(t.applySort, ImVec2(150.0f, 0.0f)))
+                {
+                    const bool sorted = sortInventory(
+                        static_cast<sortField>(sortFieldChoice),
+                        static_cast<sortAlgorithm>(sortAlgorithmChoice)
+                    );
+
+                    copyText(statusText, sorted ? t.sorted : t.bogoBlocked);
+                    selectedIndex = -1;
+                }
             }
-            ImGui::EndPopup();
-        }
-
-        if (ImGui::BeginPopup("sortPopup"))
-        {
-            renderLocalizedCombo(
-                t.sortField,
-                &sortFieldChoice,
-                t.sortByPrice,
-                t.sortByQuantity
-            );
-            renderLocalizedCombo(
-                t.sortAlgorithm,
-                &sortAlgorithmChoice,
-                t.quickSort,
-                t.bogoSort
-            );
-
-            if (ImGui::Button(t.applySort, ImVec2(220.0f, 0.0f)))
+            else if (activePanel == filePanel)
             {
-                const bool sorted = sortInventory(
-                    static_cast<sortField>(sortFieldChoice),
-                    static_cast<sortAlgorithm>(sortAlgorithmChoice)
-                );
+                ImGui::Text("%s: %.2f", t.totalValue, calculateInventoryTotalValue());
+                ImGui::SameLine();
 
-                copyText(statusText, sorted ? t.sorted : t.bogoBlocked);
-                selectedIndex = -1;
-                ImGui::CloseCurrentPopup();
+                if (ImGui::Button(t.save, ImVec2(150.0f, 0.0f)))
+                {
+                    copyText(
+                        statusText,
+                        saveInventoryToFile(inventoryFilePath) ? t.saved : t.invalidInput
+                    );
+                }
+
+                ImGui::SameLine();
+
+                if (ImGui::Button(t.reload, ImVec2(150.0f, 0.0f)))
+                {
+                    selectedIndex = -1;
+                    copyText(
+                        statusText,
+                        loadInventoryFromFile(inventoryFilePath) ? t.loaded : t.invalidInput
+                    );
+                }
             }
-            ImGui::EndPopup();
-        }
 
-        if (ImGui::BeginPopup("filePopup"))
-        {
-            ImGui::Text("%s: %.2f", t.totalValue, calculateInventoryTotalValue());
-
-            if (ImGui::Button(t.save, ImVec2(160.0f, 0.0f)))
-            {
-                copyText(
-                    statusText,
-                    saveInventoryToFile(inventoryFilePath) ? t.saved : t.invalidInput
-                );
-            }
-
-            ImGui::SameLine();
-
-            if (ImGui::Button(t.reload, ImVec2(160.0f, 0.0f)))
-            {
-                selectedIndex = -1;
-                copyText(
-                    statusText,
-                    loadInventoryFromFile(inventoryFilePath) ? t.loaded : t.invalidInput
-                );
-            }
-            ImGui::EndPopup();
+            ImGui::EndChild();
         }
 
         ImGui::BeginChild("contentPanel", ImVec2(0.0f, 0.0f), true);
