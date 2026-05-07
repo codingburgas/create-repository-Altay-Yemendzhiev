@@ -15,8 +15,9 @@ The project follows the required three-layer architecture.
 - Search products by name with Linear Search
 - Search products by exact quantity with Linear Search
 - Calculate total inventory value with recursion
-- Dark and light themes using the project color palette
+- Softer theme presets using the project color palette
 - Language selector for Bulgarian, Spanish, French, German, English, and Turkish
+- Top navigation with pop-up panels for settings, add, edit, sort, and file actions
 
 ## Project Structure
 

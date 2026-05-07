@@ -36,6 +36,34 @@ enum language
     languageCount
 };
 
+enum appTheme
+{
+    calmNightTheme,
+    softSnowTheme,
+    blueBellTheme,
+    graphiteBloomTheme,
+    themeCount
+};
+
+struct themePalette
+{
+    const char* name;
+    ImVec4 text;
+    ImVec4 mutedText;
+    ImVec4 window;
+    ImVec4 panel;
+    ImVec4 panelAlt;
+    ImVec4 border;
+    ImVec4 field;
+    ImVec4 button;
+    ImVec4 buttonHover;
+    ImVec4 accent;
+    ImVec4 tableHeader;
+    ImVec4 row;
+    ImVec4 rowAlt;
+    ImVec4 selection;
+};
+
 struct uiText
 {
     const char* languageName;
@@ -301,64 +329,123 @@ static ImVec4 colorFromHex(int red, int green, int blue, float alpha = 1.0f)
     return ImVec4(red / 255.0f, green / 255.0f, blue / 255.0f, alpha);
 }
 
-static void applyAppTheme(bool darkTheme)
+static const themePalette themePalettes[themeCount] = {
+    {
+        "calm night",
+        colorFromHex(0xff, 0xfa, 0xff),
+        colorFromHex(0xb9, 0xc7, 0xd9),
+        colorFromHex(0x16, 0x1b, 0x26),
+        colorFromHex(0x20, 0x28, 0x35),
+        colorFromHex(0x25, 0x31, 0x42),
+        colorFromHex(0x3e, 0x92, 0xcc, 0.25f),
+        colorFromHex(0x2c, 0x36, 0x47),
+        colorFromHex(0x2d, 0x68, 0x95),
+        colorFromHex(0x3e, 0x92, 0xcc),
+        colorFromHex(0xd8, 0x31, 0x5b, 0.82f),
+        colorFromHex(0x25, 0x3f, 0x67),
+        colorFromHex(0x1d, 0x24, 0x31),
+        colorFromHex(0x22, 0x2b, 0x3a),
+        colorFromHex(0x3e, 0x92, 0xcc, 0.30f)
+    },
+    {
+        "soft snow",
+        colorFromHex(0x1e, 0x1b, 0x18),
+        colorFromHex(0x68, 0x71, 0x7d),
+        colorFromHex(0xff, 0xfa, 0xff),
+        colorFromHex(0xf4, 0xf7, 0xfb),
+        colorFromHex(0xea, 0xf2, 0xf8),
+        colorFromHex(0x0a, 0x24, 0x63, 0.16f),
+        colorFromHex(0xff, 0xff, 0xff),
+        colorFromHex(0x72, 0xae, 0xd5),
+        colorFromHex(0x3e, 0x92, 0xcc),
+        colorFromHex(0xd8, 0x31, 0x5b, 0.70f),
+        colorFromHex(0xd9, 0xe8, 0xf3),
+        colorFromHex(0xff, 0xff, 0xff),
+        colorFromHex(0xf1, 0xf6, 0xfa),
+        colorFromHex(0x3e, 0x92, 0xcc, 0.20f)
+    },
+    {
+        "blue bell",
+        colorFromHex(0x1e, 0x1b, 0x18),
+        colorFromHex(0x58, 0x66, 0x72),
+        colorFromHex(0xf7, 0xfb, 0xff),
+        colorFromHex(0xe9, 0xf3, 0xfa),
+        colorFromHex(0xdc, 0xec, 0xf5),
+        colorFromHex(0x3e, 0x92, 0xcc, 0.24f),
+        colorFromHex(0xff, 0xff, 0xff),
+        colorFromHex(0x5b, 0xa0, 0xcd),
+        colorFromHex(0x3e, 0x92, 0xcc),
+        colorFromHex(0xd8, 0x31, 0x5b, 0.62f),
+        colorFromHex(0xc9, 0xe2, 0xf1),
+        colorFromHex(0xf9, 0xfc, 0xff),
+        colorFromHex(0xed, 0xf5, 0xfa),
+        colorFromHex(0x0a, 0x24, 0x63, 0.16f)
+    },
+    {
+        "graphite bloom",
+        colorFromHex(0xf7, 0xf1, 0xf5),
+        colorFromHex(0xc8, 0xbd, 0xc4),
+        colorFromHex(0x1e, 0x1b, 0x18),
+        colorFromHex(0x2b, 0x27, 0x25),
+        colorFromHex(0x34, 0x2e, 0x31),
+        colorFromHex(0xd8, 0x31, 0x5b, 0.22f),
+        colorFromHex(0x37, 0x32, 0x31),
+        colorFromHex(0x8f, 0x3d, 0x59),
+        colorFromHex(0xb8, 0x4e, 0x6e),
+        colorFromHex(0x3e, 0x92, 0xcc, 0.74f),
+        colorFromHex(0x3b, 0x32, 0x39),
+        colorFromHex(0x26, 0x22, 0x20),
+        colorFromHex(0x2e, 0x28, 0x28),
+        colorFromHex(0xd8, 0x31, 0x5b, 0.24f)
+    }
+};
+
+static void applyAppTheme(int themeIndex)
 {
     ImGuiStyle& style = ImGui::GetStyle();
-    style.WindowRounding = 6.0f;
-    style.FrameRounding = 5.0f;
-    style.PopupRounding = 5.0f;
-    style.ScrollbarRounding = 5.0f;
-    style.GrabRounding = 5.0f;
-    style.WindowBorderSize = 0.0f;
-    style.FrameBorderSize = 0.0f;
-    style.ItemSpacing = ImVec2(10.0f, 8.0f);
-    style.WindowPadding = ImVec2(16.0f, 14.0f);
-    style.FramePadding = ImVec2(10.0f, 7.0f);
+    style.WindowRounding = 8.0f;
+    style.ChildRounding = 8.0f;
+    style.FrameRounding = 6.0f;
+    style.PopupRounding = 8.0f;
+    style.ScrollbarRounding = 8.0f;
+    style.GrabRounding = 6.0f;
+    style.WindowBorderSize = 1.0f;
+    style.ChildBorderSize = 1.0f;
+    style.FrameBorderSize = 1.0f;
+    style.ItemSpacing = ImVec2(10.0f, 9.0f);
+    style.WindowPadding = ImVec2(18.0f, 16.0f);
+    style.FramePadding = ImVec2(11.0f, 7.0f);
+    style.CellPadding = ImVec2(12.0f, 9.0f);
+
+    const themePalette& palette = themePalettes[themeIndex];
 
     ImVec4* colors = style.Colors;
-    const ImVec4 imperialBlue = colorFromHex(0x0a, 0x24, 0x63);
-    const ImVec4 blueBell = colorFromHex(0x3e, 0x92, 0xcc);
-    const ImVec4 snow = colorFromHex(0xff, 0xfa, 0xff);
-    const ImVec4 magentaBloom = colorFromHex(0xd8, 0x31, 0x5b);
-    const ImVec4 carbonBlack = colorFromHex(0x1e, 0x1b, 0x18);
-
-    colors[ImGuiCol_Text] = darkTheme ? snow : carbonBlack;
-    colors[ImGuiCol_TextDisabled] = darkTheme
-        ? colorFromHex(0xa7, 0xb8, 0xd3)
-        : colorFromHex(0x67, 0x6d, 0x76);
-    colors[ImGuiCol_WindowBg] = darkTheme ? carbonBlack : snow;
-    colors[ImGuiCol_ChildBg] = darkTheme
-        ? colorFromHex(0x25, 0x28, 0x32)
-        : colorFromHex(0xf0, 0xf6, 0xfb);
-    colors[ImGuiCol_PopupBg] = colors[ImGuiCol_ChildBg];
-    colors[ImGuiCol_Border] = darkTheme
-        ? colorFromHex(0x3e, 0x92, 0xcc, 0.45f)
-        : colorFromHex(0x0a, 0x24, 0x63, 0.25f);
-    colors[ImGuiCol_FrameBg] = darkTheme
-        ? colorFromHex(0x2d, 0x34, 0x47)
-        : colorFromHex(0xff, 0xff, 0xff);
-    colors[ImGuiCol_FrameBgHovered] = colorFromHex(0x3e, 0x92, 0xcc, 0.42f);
-    colors[ImGuiCol_FrameBgActive] = blueBell;
-    colors[ImGuiCol_TitleBg] = imperialBlue;
-    colors[ImGuiCol_TitleBgActive] = imperialBlue;
-    colors[ImGuiCol_MenuBarBg] = imperialBlue;
-    colors[ImGuiCol_Button] = blueBell;
-    colors[ImGuiCol_ButtonHovered] = colorFromHex(0x5a, 0xaa, 0xde);
-    colors[ImGuiCol_ButtonActive] = magentaBloom;
-    colors[ImGuiCol_Header] = colorFromHex(0x3e, 0x92, 0xcc, 0.55f);
-    colors[ImGuiCol_HeaderHovered] = blueBell;
-    colors[ImGuiCol_HeaderActive] = magentaBloom;
-    colors[ImGuiCol_CheckMark] = magentaBloom;
-    colors[ImGuiCol_SliderGrab] = blueBell;
-    colors[ImGuiCol_SliderGrabActive] = magentaBloom;
-    colors[ImGuiCol_Tab] = darkTheme ? colorFromHex(0x23, 0x39, 0x63) : colorFromHex(0xd9, 0xeb, 0xf8);
-    colors[ImGuiCol_TabHovered] = blueBell;
-    colors[ImGuiCol_TabActive] = imperialBlue;
-    colors[ImGuiCol_TableHeaderBg] = imperialBlue;
-    colors[ImGuiCol_TableRowBg] = darkTheme ? colorFromHex(0x22, 0x21, 0x20) : snow;
-    colors[ImGuiCol_TableRowBgAlt] = darkTheme
-        ? colorFromHex(0x28, 0x2e, 0x3b)
-        : colorFromHex(0xee, 0xf6, 0xfc);
+    colors[ImGuiCol_Text] = palette.text;
+    colors[ImGuiCol_TextDisabled] = palette.mutedText;
+    colors[ImGuiCol_WindowBg] = palette.window;
+    colors[ImGuiCol_ChildBg] = palette.panel;
+    colors[ImGuiCol_PopupBg] = palette.panel;
+    colors[ImGuiCol_Border] = palette.border;
+    colors[ImGuiCol_FrameBg] = palette.field;
+    colors[ImGuiCol_FrameBgHovered] = palette.panelAlt;
+    colors[ImGuiCol_FrameBgActive] = palette.selection;
+    colors[ImGuiCol_TitleBg] = palette.panel;
+    colors[ImGuiCol_TitleBgActive] = palette.panel;
+    colors[ImGuiCol_MenuBarBg] = palette.panel;
+    colors[ImGuiCol_Button] = palette.button;
+    colors[ImGuiCol_ButtonHovered] = palette.buttonHover;
+    colors[ImGuiCol_ButtonActive] = palette.accent;
+    colors[ImGuiCol_Header] = palette.selection;
+    colors[ImGuiCol_HeaderHovered] = palette.buttonHover;
+    colors[ImGuiCol_HeaderActive] = palette.accent;
+    colors[ImGuiCol_CheckMark] = palette.accent;
+    colors[ImGuiCol_SliderGrab] = palette.button;
+    colors[ImGuiCol_SliderGrabActive] = palette.accent;
+    colors[ImGuiCol_TableHeaderBg] = palette.tableHeader;
+    colors[ImGuiCol_TableRowBg] = palette.row;
+    colors[ImGuiCol_TableRowBgAlt] = palette.rowAlt;
+    colors[ImGuiCol_NavHighlight] = palette.selection;
+    colors[ImGuiCol_Separator] = palette.border;
 }
 
 static void loadInterfaceFont()
@@ -414,10 +501,12 @@ static void renderProductsTable(
         "productsTable",
         4,
         ImGuiTableFlags_RowBg
-            | ImGuiTableFlags_Borders
+            | ImGuiTableFlags_BordersOuter
+            | ImGuiTableFlags_BordersInnerH
             | ImGuiTableFlags_Resizable
+            | ImGuiTableFlags_Reorderable
             | ImGuiTableFlags_ScrollY,
-        ImVec2(0.0f, 430.0f)
+        ImVec2(0.0f, 0.0f)
     ))
     {
         ImGui::TableSetupColumn("#", ImGuiTableColumnFlags_WidthFixed, 44.0f);
@@ -549,13 +638,13 @@ void renderUI(const char* inventoryFilePath)
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
     loadInterfaceFont();
-    applyAppTheme(true);
+    int currentTheme = calmNightTheme;
+    applyAppTheme(currentTheme);
 
     ImGui_ImplWin32_Init(window);
     ImGui_ImplDX11_Init(d3dDevice, d3dDeviceContext);
 
     bool done = false;
-    bool darkTheme = true;
     int currentLanguage = englishLanguage;
     int selectedIndex = -1;
     int sortFieldChoice = sortByPrice;
@@ -603,151 +692,207 @@ void renderUI(const char* inventoryFilePath)
                 | ImGuiWindowFlags_NoResize
         );
 
-        ImGui::TextColored(colorFromHex(0x3e, 0x92, 0xcc), "%s", t.title);
+        ImGui::TextColored(themePalettes[currentTheme].buttonHover, "%s", t.title);
         ImGui::SameLine();
-        ImGui::Text("  %s: %d", t.products, getProductCountForDisplay());
-        ImGui::Separator();
+        ImGui::TextDisabled("  %s: %d", t.products, getProductCountForDisplay());
 
-        ImGui::BeginChild("leftPanel", ImVec2(340.0f, 0.0f), true);
-        ImGui::TextUnformatted(t.controls);
-
-        ImGui::Spacing();
-        ImGui::TextUnformatted(t.theme);
-        if (ImGui::RadioButton(t.dark, darkTheme))
+        ImGui::BeginChild("navbar", ImVec2(0.0f, 58.0f), true);
+        if (ImGui::Button(t.theme, ImVec2(128.0f, 0.0f)))
         {
-            darkTheme = true;
-            applyAppTheme(true);
+            ImGui::OpenPopup("settingsPopup");
         }
         ImGui::SameLine();
-        if (ImGui::RadioButton(t.light, !darkTheme))
+        if (ImGui::Button(t.addProduct, ImVec2(150.0f, 0.0f)))
         {
-            darkTheme = false;
-            applyAppTheme(false);
+            ImGui::OpenPopup("addPopup");
         }
-
-        ImGui::Spacing();
-        ImGui::TextUnformatted(t.languageLabel);
-        if (ImGui::BeginCombo("##languageCombo", texts[currentLanguage].languageName))
-        {
-            for (int i = 0; i < languageCount; ++i)
-            {
-                const bool selected = currentLanguage == i;
-
-                if (ImGui::Selectable(texts[i].languageName, selected))
-                {
-                    currentLanguage = i;
-                }
-
-                if (selected)
-                {
-                    ImGui::SetItemDefaultFocus();
-                }
-            }
-
-            ImGui::EndCombo();
-        }
-
-        ImGui::SeparatorText(t.addProduct);
-        ImGui::InputText(t.productName, newName, sizeof(newName));
-        ImGui::InputFloat(t.price, &newPrice, 0.10f, 1.0f, "%.2f");
-        ImGui::InputInt(t.quantity, &newQuantity);
-
-        if (ImGui::Button(t.add, ImVec2(-1.0f, 0.0f)))
-        {
-            if (addNewProduct(newName, newPrice, newQuantity))
-            {
-                copyText(statusText, t.productAdded);
-                newName[0] = '\0';
-                newPrice = 1.0f;
-                newQuantity = 1;
-            }
-            else
-            {
-                copyText(statusText, t.invalidInput);
-            }
-        }
-
-        ImGui::SeparatorText(t.updateQuantity);
-        ImGui::InputInt(t.quantity, &editQuantity);
-
-        if (ImGui::Button(t.updateQuantity, ImVec2(-1.0f, 0.0f)))
-        {
-            if (selectedIndex >= 0 && updateProductQuantity(selectedIndex, editQuantity))
-            {
-                copyText(statusText, t.quantityUpdated);
-            }
-            else
-            {
-                copyText(statusText, t.selectRow);
-            }
-        }
-
-        if (ImGui::Button(t.deleteProduct, ImVec2(-1.0f, 0.0f)))
-        {
-            if (selectedIndex >= 0 && deleteProductByIndex(selectedIndex))
-            {
-                selectedIndex = -1;
-                copyText(statusText, t.productDeleted);
-            }
-            else
-            {
-                copyText(statusText, t.selectRow);
-            }
-        }
-
-        ImGui::SeparatorText(t.sortProducts);
-        renderLocalizedCombo(
-            t.sortField,
-            &sortFieldChoice,
-            t.sortByPrice,
-            t.sortByQuantity
-        );
-        renderLocalizedCombo(
-            t.sortAlgorithm,
-            &sortAlgorithmChoice,
-            t.quickSort,
-            t.bogoSort
-        );
-
-        if (ImGui::Button(t.applySort, ImVec2(-1.0f, 0.0f)))
-        {
-            const bool sorted = sortInventory(
-                static_cast<sortField>(sortFieldChoice),
-                static_cast<sortAlgorithm>(sortAlgorithmChoice)
-            );
-
-            copyText(statusText, sorted ? t.sorted : t.bogoBlocked);
-        }
-
-        ImGui::SeparatorText(t.status);
-        ImGui::TextWrapped("%s", statusText);
-        ImGui::Text("%s: %.2f", t.totalValue, calculateInventoryTotalValue());
-
-        if (ImGui::Button(t.save, ImVec2(154.0f, 0.0f)))
-        {
-            copyText(
-                statusText,
-                saveInventoryToFile(inventoryFilePath) ? t.saved : t.invalidInput
-            );
-        }
-
         ImGui::SameLine();
-
-        if (ImGui::Button(t.reload, ImVec2(154.0f, 0.0f)))
+        if (ImGui::Button(t.updateQuantity, ImVec2(170.0f, 0.0f)))
         {
-            selectedIndex = -1;
-            copyText(
-                statusText,
-                loadInventoryFromFile(inventoryFilePath) ? t.loaded : t.invalidInput
-            );
+            ImGui::OpenPopup("editPopup");
         }
-
+        ImGui::SameLine();
+        if (ImGui::Button(t.sortProducts, ImVec2(150.0f, 0.0f)))
+        {
+            ImGui::OpenPopup("sortPopup");
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(t.save, ImVec2(120.0f, 0.0f)))
+        {
+            ImGui::OpenPopup("filePopup");
+        }
+        ImGui::SameLine();
+        ImGui::TextDisabled("%s: %s", t.status, statusText);
         ImGui::EndChild();
 
-        ImGui::SameLine();
-        ImGui::BeginChild("tablePanel", ImVec2(0.0f, 0.0f), true);
+        if (ImGui::BeginPopup("settingsPopup"))
+        {
+            ImGui::TextUnformatted(t.theme);
+            if (ImGui::BeginCombo("##themeCombo", themePalettes[currentTheme].name))
+            {
+                for (int i = 0; i < themeCount; ++i)
+                {
+                    if (ImGui::Selectable(themePalettes[i].name, currentTheme == i))
+                    {
+                        currentTheme = i;
+                        applyAppTheme(currentTheme);
+                    }
+                }
+                ImGui::EndCombo();
+            }
+
+            ImGui::Spacing();
+            ImGui::TextUnformatted(t.languageLabel);
+            if (ImGui::BeginCombo("##languageCombo", texts[currentLanguage].languageName))
+            {
+                for (int i = 0; i < languageCount; ++i)
+                {
+                    const bool selected = currentLanguage == i;
+
+                    if (ImGui::Selectable(texts[i].languageName, selected))
+                    {
+                        currentLanguage = i;
+                    }
+
+                    if (selected)
+                    {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+
+                ImGui::EndCombo();
+            }
+            ImGui::EndPopup();
+        }
+
+        if (ImGui::BeginPopup("addPopup"))
+        {
+            ImGui::TextUnformatted(t.addProduct);
+            ImGui::InputText(t.productName, newName, sizeof(newName));
+            ImGui::InputFloat(t.price, &newPrice, 0.10f, 1.0f, "%.2f");
+            ImGui::InputInt(t.quantity, &newQuantity);
+
+            if (ImGui::Button(t.add, ImVec2(220.0f, 0.0f)))
+            {
+                if (addNewProduct(newName, newPrice, newQuantity))
+                {
+                    copyText(statusText, t.productAdded);
+                    newName[0] = '\0';
+                    newPrice = 1.0f;
+                    newQuantity = 1;
+                    ImGui::CloseCurrentPopup();
+                }
+                else
+                {
+                    copyText(statusText, t.invalidInput);
+                }
+            }
+            ImGui::EndPopup();
+        }
+
+        if (ImGui::BeginPopup("editPopup"))
+        {
+            if (selectedIndex >= 0)
+            {
+                product selectedItem = {};
+                getProductForDisplay(selectedIndex, &selectedItem);
+                ImGui::TextUnformatted(selectedItem.name);
+                ImGui::Text("%s: %.2f", t.price, selectedItem.price);
+                ImGui::InputInt(t.quantity, &editQuantity);
+
+                if (ImGui::Button(t.updateQuantity, ImVec2(220.0f, 0.0f)))
+                {
+                    if (updateProductQuantity(selectedIndex, editQuantity))
+                    {
+                        copyText(statusText, t.quantityUpdated);
+                    }
+                    else
+                    {
+                        copyText(statusText, t.invalidInput);
+                    }
+                }
+
+                if (ImGui::Button(t.deleteProduct, ImVec2(220.0f, 0.0f)))
+                {
+                    if (deleteProductByIndex(selectedIndex))
+                    {
+                        selectedIndex = -1;
+                        copyText(statusText, t.productDeleted);
+                        ImGui::CloseCurrentPopup();
+                    }
+                }
+            }
+            else
+            {
+                ImGui::TextWrapped("%s", t.selectRow);
+            }
+            ImGui::EndPopup();
+        }
+
+        if (ImGui::BeginPopup("sortPopup"))
+        {
+            renderLocalizedCombo(
+                t.sortField,
+                &sortFieldChoice,
+                t.sortByPrice,
+                t.sortByQuantity
+            );
+            renderLocalizedCombo(
+                t.sortAlgorithm,
+                &sortAlgorithmChoice,
+                t.quickSort,
+                t.bogoSort
+            );
+
+            if (ImGui::Button(t.applySort, ImVec2(220.0f, 0.0f)))
+            {
+                const bool sorted = sortInventory(
+                    static_cast<sortField>(sortFieldChoice),
+                    static_cast<sortAlgorithm>(sortAlgorithmChoice)
+                );
+
+                copyText(statusText, sorted ? t.sorted : t.bogoBlocked);
+                selectedIndex = -1;
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+
+        if (ImGui::BeginPopup("filePopup"))
+        {
+            ImGui::Text("%s: %.2f", t.totalValue, calculateInventoryTotalValue());
+
+            if (ImGui::Button(t.save, ImVec2(160.0f, 0.0f)))
+            {
+                copyText(
+                    statusText,
+                    saveInventoryToFile(inventoryFilePath) ? t.saved : t.invalidInput
+                );
+            }
+
+            ImGui::SameLine();
+
+            if (ImGui::Button(t.reload, ImVec2(160.0f, 0.0f)))
+            {
+                selectedIndex = -1;
+                copyText(
+                    statusText,
+                    loadInventoryFromFile(inventoryFilePath) ? t.loaded : t.invalidInput
+                );
+            }
+            ImGui::EndPopup();
+        }
+
+        ImGui::BeginChild("contentPanel", ImVec2(0.0f, 0.0f), true);
         ImGui::TextUnformatted(t.products);
+        ImGui::SameLine();
+        ImGui::TextDisabled("%s: %.2f", t.totalValue, calculateInventoryTotalValue());
+        ImGui::Separator();
+
+        ImGui::SetNextItemWidth(360.0f);
         ImGui::InputText(t.searchName, nameFilter, sizeof(nameFilter));
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(210.0f);
         ImGui::InputInt(t.exactQuantity, &quantityFilter);
         ImGui::SameLine();
 
@@ -757,6 +902,23 @@ void renderUI(const char* inventoryFilePath)
             quantityFilter = -1;
         }
 
+        if (selectedIndex >= 0)
+        {
+            product selectedItem = {};
+            getProductForDisplay(selectedIndex, &selectedItem);
+            ImGui::TextDisabled(
+                "%s: %s  |  %.2f  |  %d",
+                t.status,
+                selectedItem.name,
+                selectedItem.price,
+                selectedItem.quantity
+            );
+        }
+        else
+        {
+            ImGui::TextDisabled("%s", t.selectRow);
+        }
+
         renderProductsTable(&selectedIndex, &editQuantity, nameFilter, quantityFilter, t);
         ImGui::EndChild();
 
@@ -764,7 +926,8 @@ void renderUI(const char* inventoryFilePath)
 
         ImGui::Render();
 
-        const float clearColor[4] = { 0.039f, 0.141f, 0.388f, 1.0f };
+        const ImVec4 clear = themePalettes[currentTheme].window;
+        const float clearColor[4] = { clear.x, clear.y, clear.z, clear.w };
         d3dDeviceContext->OMSetRenderTargets(1, &mainRenderTargetView, nullptr);
         d3dDeviceContext->ClearRenderTargetView(mainRenderTargetView, clearColor);
         ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());

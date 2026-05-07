@@ -4,7 +4,10 @@ Run the application to open the Dear ImGui window.
 
 ## Main Controls
 
-- Use the theme controls to switch between dark and light mode.
+- Use the top navigation buttons to open small panels for settings, adding,
+  editing, sorting, and file actions.
+- Use the theme controls to switch between calm night, soft snow, blue bell,
+  and graphite bloom.
 - Use the language dropdown to switch between Bulgarian, Spanish, French,
   German, English, and Turkish.
 - Use the table search fields to filter products by name or exact quantity.
