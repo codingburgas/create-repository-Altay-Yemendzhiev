@@ -33,6 +33,8 @@ enum language
     germanLanguage,
     englishLanguage,
     turkishLanguage,
+    russianLanguage,
+    hebrewLanguage,
     languageCount
 };
 
@@ -209,6 +211,34 @@ static const uiText texts[languageCount] = {
         u8"Ürünler sıralandı.",
         u8"Bogo sıralama 8 üründen fazlası için engellendi.",
         u8"Veriler kaydedildi.", u8"Veriler yüklendi.", u8"Ürün yok."
+    },
+    {
+        u8"Русский", u8"Система учета склада", u8"Товары", u8"Управление",
+        u8"Добавить товар", u8"Название товара", u8"Цена", u8"Количество",
+        u8"Добавить", u8"Обновить количество", u8"Удалить товар",
+        u8"Поиск по названию", u8"Поиск по количеству", u8"Точное количество",
+        u8"Очистить", u8"Сортировка", u8"Поле", u8"Алгоритм", u8"Цена",
+        u8"Количество", u8"Быстрая сортировка", u8"Бого-сортировка",
+        u8"Сортировать", u8"Общая стоимость", u8"Сохранить",
+        u8"Перезагрузить", u8"Тема", u8"Темная", u8"Светлая", u8"Язык",
+        u8"Статус", u8"Выберите строку в таблице.", u8"Некорректные данные.",
+        u8"Товар добавлен.", u8"Количество обновлено.", u8"Товар удален.",
+        u8"Товары отсортированы.",
+        u8"Бого-сортировка заблокирована для более чем 8 товаров.",
+        u8"Данные сохранены.", u8"Данные загружены.", u8"Товаров нет."
+    },
+    {
+        u8"עברית", u8"מערכת מלאי", u8"מוצרים", u8"בקרה",
+        u8"הוסף מוצר", u8"שם מוצר", u8"מחיר", u8"כמות", u8"הוסף",
+        u8"עדכן כמות", u8"מחק מוצר", u8"חיפוש לפי שם",
+        u8"חיפוש לפי כמות", u8"כמות מדויקת", u8"נקה", u8"מיון מוצרים",
+        u8"שדה", u8"אלגוריתם", u8"מחיר", u8"כמות", u8"מיון מהיר",
+        u8"מיון בוגו", u8"מיין", u8"ערך כולל", u8"שמור", u8"טען מחדש",
+        u8"ערכת נושא", u8"כהה", u8"בהירה", u8"שפה", u8"מצב",
+        u8"בחר שורה מהטבלה.", u8"נתונים לא תקינים.", u8"המוצר נוסף.",
+        u8"הכמות עודכנה.", u8"המוצר נמחק.", u8"המוצרים מוינו.",
+        u8"מיון בוגו חסום עבור יותר מ-8 מוצרים.",
+        u8"הנתונים נשמרו.", u8"הנתונים נטענו.", u8"אין מוצרים."
     }
 };
 
@@ -341,24 +371,24 @@ static ImVec4 colorFromHex(int red, int green, int blue, float alpha = 1.0f)
 
 static const themePalette themePalettes[themeCount] = {
     {
-        "calm night",
-        colorFromHex(0xff, 0xfa, 0xff),
-        colorFromHex(0xb9, 0xc7, 0xd9),
-        colorFromHex(0x16, 0x1b, 0x26),
-        colorFromHex(0x20, 0x28, 0x35),
-        colorFromHex(0x25, 0x31, 0x42),
-        colorFromHex(0x3e, 0x92, 0xcc, 0.25f),
-        colorFromHex(0x2c, 0x36, 0x47),
-        colorFromHex(0x2d, 0x68, 0x95),
-        colorFromHex(0x3e, 0x92, 0xcc),
-        colorFromHex(0xd8, 0x31, 0x5b, 0.82f),
-        colorFromHex(0x25, 0x3f, 0x67),
-        colorFromHex(0x1d, 0x24, 0x31),
-        colorFromHex(0x22, 0x2b, 0x3a),
-        colorFromHex(0x3e, 0x92, 0xcc, 0.30f)
+        "Noir",
+        colorFromHex(0xf4, 0xf0, 0xf4),
+        colorFromHex(0xa9, 0xb1, 0xbd),
+        colorFromHex(0x19, 0x1d, 0x24),
+        colorFromHex(0x22, 0x28, 0x33),
+        colorFromHex(0x28, 0x30, 0x3d),
+        colorFromHex(0x71, 0x87, 0xa3, 0.18f),
+        colorFromHex(0x2c, 0x33, 0x40),
+        colorFromHex(0x31, 0x66, 0x8c),
+        colorFromHex(0x3e, 0x92, 0xcc, 0.82f),
+        colorFromHex(0xc8, 0x3b, 0x5d, 0.72f),
+        colorFromHex(0x27, 0x38, 0x4d),
+        colorFromHex(0x1d, 0x22, 0x2b),
+        colorFromHex(0x23, 0x2a, 0x35),
+        colorFromHex(0x3e, 0x92, 0xcc, 0.22f)
     },
     {
-        "soft snow",
+        "Snow",
         colorFromHex(0x1e, 0x1b, 0x18),
         colorFromHex(0x68, 0x71, 0x7d),
         colorFromHex(0xff, 0xfa, 0xff),
@@ -366,16 +396,16 @@ static const themePalette themePalettes[themeCount] = {
         colorFromHex(0xea, 0xf2, 0xf8),
         colorFromHex(0x0a, 0x24, 0x63, 0.16f),
         colorFromHex(0xff, 0xff, 0xff),
-        colorFromHex(0x72, 0xae, 0xd5),
-        colorFromHex(0x3e, 0x92, 0xcc),
-        colorFromHex(0xd8, 0x31, 0x5b, 0.70f),
+        colorFromHex(0x6a, 0x9f, 0xc2),
+        colorFromHex(0x4d, 0x89, 0xb5),
+        colorFromHex(0xc9, 0x45, 0x65, 0.58f),
         colorFromHex(0xd9, 0xe8, 0xf3),
         colorFromHex(0xff, 0xff, 0xff),
         colorFromHex(0xf1, 0xf6, 0xfa),
         colorFromHex(0x3e, 0x92, 0xcc, 0.20f)
     },
     {
-        "blue bell",
+        "Azure",
         colorFromHex(0x1e, 0x1b, 0x18),
         colorFromHex(0x58, 0x66, 0x72),
         colorFromHex(0xf7, 0xfb, 0xff),
@@ -383,16 +413,16 @@ static const themePalette themePalettes[themeCount] = {
         colorFromHex(0xdc, 0xec, 0xf5),
         colorFromHex(0x3e, 0x92, 0xcc, 0.24f),
         colorFromHex(0xff, 0xff, 0xff),
-        colorFromHex(0x5b, 0xa0, 0xcd),
-        colorFromHex(0x3e, 0x92, 0xcc),
-        colorFromHex(0xd8, 0x31, 0x5b, 0.62f),
+        colorFromHex(0x60, 0x96, 0xba),
+        colorFromHex(0x45, 0x82, 0xae),
+        colorFromHex(0xbd, 0x46, 0x62, 0.54f),
         colorFromHex(0xc9, 0xe2, 0xf1),
         colorFromHex(0xf9, 0xfc, 0xff),
         colorFromHex(0xed, 0xf5, 0xfa),
         colorFromHex(0x0a, 0x24, 0x63, 0.16f)
     },
     {
-        "graphite bloom",
+        "Bloom",
         colorFromHex(0xf7, 0xf1, 0xf5),
         colorFromHex(0xc8, 0xbd, 0xc4),
         colorFromHex(0x1e, 0x1b, 0x18),
@@ -400,9 +430,9 @@ static const themePalette themePalettes[themeCount] = {
         colorFromHex(0x34, 0x2e, 0x31),
         colorFromHex(0xd8, 0x31, 0x5b, 0.22f),
         colorFromHex(0x37, 0x32, 0x31),
-        colorFromHex(0x8f, 0x3d, 0x59),
-        colorFromHex(0xb8, 0x4e, 0x6e),
-        colorFromHex(0x3e, 0x92, 0xcc, 0.74f),
+        colorFromHex(0x8a, 0x3f, 0x57),
+        colorFromHex(0xa9, 0x4e, 0x66),
+        colorFromHex(0xd8, 0x31, 0x5b, 0.72f),
         colorFromHex(0x3b, 0x32, 0x39),
         colorFromHex(0x26, 0x22, 0x20),
         colorFromHex(0x2e, 0x28, 0x28),
@@ -467,6 +497,11 @@ static void loadInterfaceFont()
     builder.AddText(
         u8"áéíóúñçàèùâêîôûäöüßğışİçŞĞÜÖ"
         u8"БългарскиСистемауправлениенамагазинПродуктиКоличество"
+    );
+
+    builder.AddText(
+        u8"РусскийСистемаучетаскладаТоварыКоличество"
+        u8"עבריתמערכתמלאימוצריםכמותמחיר"
     );
 
     static ImVector<ImWchar> ranges;

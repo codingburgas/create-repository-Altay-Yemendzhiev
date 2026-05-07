@@ -6,10 +6,9 @@ Run the application to open the Dear ImGui window.
 
 - Use the top navigation buttons to open small panels for settings, adding,
   editing, sorting, and file actions.
-- Use the theme controls to switch between calm night, soft snow, blue bell,
-  and graphite bloom.
+- Use the theme controls to switch between Noir, Snow, Azure, and Bloom.
 - Use the language dropdown to switch between Bulgarian, Spanish, French,
-  German, English, and Turkish.
+  German, English, Turkish, Russian, and Hebrew.
 - Use the table search fields to filter products by name or exact quantity.
 - Select a product row before updating its quantity or deleting it.
 - Use the sorting controls to choose price or quantity, then Quick Sort or
