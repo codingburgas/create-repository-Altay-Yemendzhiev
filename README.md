@@ -1,13 +1,12 @@
 # Inventory Management System
 
-Terminal version of a C++ inventory management project for 9th grade.
-The project follows the required three-layer architecture and is ready for a
-Dear ImGui presentation layer later.
+Dear ImGui version of a C++ inventory management project for 9th grade.
+The project follows the required three-layer architecture.
 
 ## Features
 
 - Load and save products from `resources/products.csv`
-- Show products in a paged terminal table
+- Show products in a Dear ImGui table
 - Add products
 - Update product quantities
 - Delete products
@@ -16,7 +15,8 @@ Dear ImGui presentation layer later.
 - Search products by name with Linear Search
 - Search products by exact quantity with Linear Search
 - Calculate total inventory value with recursion
-- Clear terminal screens between actions
+- Dark and light themes using the project color palette
+- Language selector for Bulgarian, Spanish, French, German, English, and Turkish
 
 ## Project Structure
 
@@ -49,9 +49,8 @@ project-root/
 
 The repository intentionally has fewer than 18 `.cpp` and `.h` files. Build
 folders, Visual Studio files, executables, and large dependency source drops are
-ignored. When Dear ImGui is added, use a Git submodule, package manager, or
-CMake download inside the ignored build folder instead of copying the full ImGui
-source into a normal commit.
+ignored. Dear ImGui is downloaded by CMake FetchContent into the ignored build
+folder, so the full ImGui source is not copied into normal commits.
 
 ## Architecture
 
@@ -88,4 +87,4 @@ cmake --build build --config Debug --target InventoryTests
 - Scrum Master: project tracking, documentation, GitHub project board
 - Back-End Developer 1: data layer and file handling
 - Back-End Developer 2: sorting, searching, recursion, validation
-- Front-End Developer: terminal UI now, Dear ImGui UI later
+- Front-End Developer: Dear ImGui interface

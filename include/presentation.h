@@ -2,11 +2,11 @@
 
 /*
  * presentation.h
- * Presentation layer for the terminal inventory management interface.
+ * Presentation layer for the Dear ImGui inventory management interface.
  */
 
 /*
- * Purpose: Renders and runs the complete terminal inventory interface.
+ * Purpose: Renders and runs the complete Dear ImGui inventory interface.
  * Parameters: inventoryFilePath - CSV path used by load and save actions.
  * Return value: None.
  */
