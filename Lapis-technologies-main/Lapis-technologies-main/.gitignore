@@ -1,0 +1,35 @@
+# Local IDE files
+.vs/
+*.user
+*.suo
+*.db
+*.db-shm
+*.db-wal
+*.opendb
+*.ipch
+*.vsidx
+
+# Build output
+build/
+out/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+*.exe
+*.dll
+*.ilk
+*.obj
+*.pdb
+*.log
+
+# CMake dependency downloads
+_deps/
+build/_deps/
+
+# Do not commit large GUI/vendor source drops.
+# Add Dear ImGui as a submodule/package, not as copied source files.
+third_party/imgui/
+third_party/glfw/
+external/
+vendor/
