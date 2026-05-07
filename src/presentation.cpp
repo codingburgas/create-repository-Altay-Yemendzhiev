@@ -10,8 +10,8 @@
 
 enum
 {
-    PRODUCTS_PER_PAGE = 20,
-    PRODUCT_NAME_COLUMN_WIDTH = 34
+    productsPerPage = 12,
+    productNameColumnWidth = 34
 };
 
 /*
@@ -74,30 +74,30 @@ static void displayTitle(const char* title)
  *             highlight - whether this row should be marked.
  * Return value: None.
  */
-static void displayProductRow(int number, Product product, bool highlight)
+static void displayProductRow(int number, product item, bool highlight)
 {
-    char displayName[PRODUCT_NAME_COLUMN_WIDTH + 1] = "";
-    const int nameLength = static_cast<int>(std::strlen(product.name));
+    char displayName[productNameColumnWidth + 1] = "";
+    const int nameLength = static_cast<int>(std::strlen(item.name));
 
-    if (nameLength > PRODUCT_NAME_COLUMN_WIDTH)
+    if (nameLength > productNameColumnWidth)
     {
-        std::strncpy(displayName, product.name, PRODUCT_NAME_COLUMN_WIDTH - 3);
-        displayName[PRODUCT_NAME_COLUMN_WIDTH - 3] = '.';
-        displayName[PRODUCT_NAME_COLUMN_WIDTH - 2] = '.';
-        displayName[PRODUCT_NAME_COLUMN_WIDTH - 1] = '.';
-        displayName[PRODUCT_NAME_COLUMN_WIDTH] = '\0';
+        std::strncpy(displayName, item.name, productNameColumnWidth - 3);
+        displayName[productNameColumnWidth - 3] = '.';
+        displayName[productNameColumnWidth - 2] = '.';
+        displayName[productNameColumnWidth - 1] = '.';
+        displayName[productNameColumnWidth] = '\0';
     }
     else
     {
-        std::strncpy(displayName, product.name, PRODUCT_NAME_COLUMN_WIDTH);
-        displayName[PRODUCT_NAME_COLUMN_WIDTH] = '\0';
+        std::strncpy(displayName, item.name, productNameColumnWidth);
+        displayName[productNameColumnWidth] = '\0';
     }
 
     std::cout << std::left << std::setw(6) << number;
-    std::cout << std::left << std::setw(PRODUCT_NAME_COLUMN_WIDTH) << displayName;
+    std::cout << std::left << std::setw(productNameColumnWidth) << displayName;
     std::cout << std::right << std::setw(10) << std::fixed
-        << std::setprecision(2) << product.price;
-    std::cout << std::right << std::setw(10) << product.quantity;
+        << std::setprecision(2) << item.price;
+    std::cout << std::right << std::setw(10) << item.quantity;
 
     if (highlight)
     {
@@ -133,15 +133,15 @@ static void displayProducts(int highlightIndex)
         clearScreen();
         displayTitle("Products");
 
-        const int endIndex = startIndex + PRODUCTS_PER_PAGE < count
-            ? startIndex + PRODUCTS_PER_PAGE
+        const int endIndex = startIndex + productsPerPage < count
+            ? startIndex + productsPerPage
             : count;
 
         std::cout << "Showing " << (startIndex + 1) << "-" << endIndex;
         std::cout << " of " << count << " products\n\n";
 
         std::cout << std::left << std::setw(6) << "No.";
-        std::cout << std::left << std::setw(PRODUCT_NAME_COLUMN_WIDTH) << "Name";
+        std::cout << std::left << std::setw(productNameColumnWidth) << "Name";
         std::cout << std::right << std::setw(10) << "Price";
         std::cout << std::right << std::setw(10) << "Quantity";
         std::cout << "\n";
@@ -149,9 +149,9 @@ static void displayProducts(int highlightIndex)
 
         for (int i = startIndex; i < endIndex; ++i)
         {
-            Product product = {};
-            getProductForDisplay(i, &product);
-            displayProductRow(i + 1, product, i == highlightIndex);
+            product item = {};
+            getProductForDisplay(i, &item);
+            displayProductRow(i + 1, item, i == highlightIndex);
         }
 
         if (endIndex >= count)
@@ -173,7 +173,7 @@ static void displayProducts(int highlightIndex)
             }
             else
             {
-                startIndex += PRODUCTS_PER_PAGE;
+                startIndex += productsPerPage;
             }
         }
     }
@@ -207,7 +207,7 @@ static int readProductIndex(const char* prompt)
  */
 static void handleAddProduct()
 {
-    char name[MAX_NAME_LENGTH] = "";
+    char name[maxNameLength] = "";
     float price = 0.0f;
     int quantity = 0;
 
@@ -255,9 +255,9 @@ static void handleAddProduct()
  * Parameters: foundIndex - pointer to the last found product index.
  * Return value: None.
  */
-static void handleSearch(int* foundIndex)
+static void handleSearchByName(int* foundIndex)
 {
-    char query[MAX_NAME_LENGTH] = "";
+    char query[maxNameLength] = "";
 
     clearScreen();
     displayTitle("Search");
@@ -281,19 +281,191 @@ static void handleSearch(int* foundIndex)
         return;
     }
 
-    Product product = {};
-    getProductForDisplay(*foundIndex, &product);
+    product item = {};
+    getProductForDisplay(*foundIndex, &item);
 
     std::cout << "\nFound product:\n\n";
     std::cout << std::left << std::setw(6) << "No.";
-    std::cout << std::left << std::setw(PRODUCT_NAME_COLUMN_WIDTH) << "Name";
+    std::cout << std::left << std::setw(productNameColumnWidth) << "Name";
     std::cout << std::right << std::setw(10) << "Price";
     std::cout << std::right << std::setw(10) << "Quantity";
     std::cout << "\n";
     std::cout << "------------------------------------------------------------\n";
-    displayProductRow(*foundIndex + 1, product, true);
+    displayProductRow(*foundIndex + 1, item, true);
 
     waitForEnter();
+}
+
+/*
+ * Purpose: Reads an exact quantity and displays every matching product.
+ * Parameters: None.
+ * Return value: None.
+ */
+static void handleSearchByQuantity()
+{
+    int quantity = 0;
+    int foundIndex = 0;
+    int matchCount = 0;
+
+    clearScreen();
+    displayTitle("Search By Quantity");
+
+    std::cout << "Quantity to find: ";
+
+    if (!(std::cin >> quantity))
+    {
+        clearInput();
+        std::cout << "\nError: quantity must be a whole number.\n";
+        waitForEnter();
+        return;
+    }
+
+    clearInput();
+
+    if (quantity < 0)
+    {
+        std::cout << "\nError: quantity cannot be negative.\n";
+        waitForEnter();
+        return;
+    }
+
+    std::cout << "\nProducts with quantity " << quantity << ":\n\n";
+    std::cout << std::left << std::setw(6) << "No.";
+    std::cout << std::left << std::setw(productNameColumnWidth) << "Name";
+    std::cout << std::right << std::setw(10) << "Price";
+    std::cout << std::right << std::setw(10) << "Quantity";
+    std::cout << "\n";
+    std::cout << "------------------------------------------------------------\n";
+
+    while (foundIndex >= 0)
+    {
+        foundIndex = findProductByQuantity(quantity, foundIndex);
+
+        if (foundIndex >= 0)
+        {
+            product item = {};
+            getProductForDisplay(foundIndex, &item);
+            displayProductRow(foundIndex + 1, item, true);
+            ++foundIndex;
+            ++matchCount;
+        }
+    }
+
+    if (matchCount == 0)
+    {
+        std::cout << "No products have that quantity.\n";
+    }
+
+    waitForEnter();
+}
+
+/*
+ * Purpose: Reads the selected sort field.
+ * Parameters: field - destination pointer for the selected field.
+ * Return value: true when a valid field was selected.
+ */
+static bool readSortField(sortField* field)
+{
+    int choice = 0;
+
+    std::cout << "1. Price\n";
+    std::cout << "2. Quantity\n";
+    std::cout << "Choose field: ";
+
+    if (!(std::cin >> choice))
+    {
+        clearInput();
+        return false;
+    }
+
+    clearInput();
+
+    if (choice == 1)
+    {
+        *field = sortByPrice;
+        return true;
+    }
+
+    if (choice == 2)
+    {
+        *field = sortByQuantity;
+        return true;
+    }
+
+    return false;
+}
+
+/*
+ * Purpose: Reads the selected sort algorithm.
+ * Parameters: algorithm - destination pointer for the selected algorithm.
+ * Return value: true when a valid algorithm was selected.
+ */
+static bool readSortAlgorithm(sortAlgorithm* algorithm)
+{
+    int choice = 0;
+
+    std::cout << "\n1. Quick Sort\n";
+    std::cout << "2. Bogo Sort (joke, only works with 8 or fewer products)\n";
+    std::cout << "Choose algorithm: ";
+
+    if (!(std::cin >> choice))
+    {
+        clearInput();
+        return false;
+    }
+
+    clearInput();
+
+    if (choice == 1)
+    {
+        *algorithm = quickSortAlgorithm;
+        return true;
+    }
+
+    if (choice == 2)
+    {
+        *algorithm = bogoSortAlgorithm;
+        return true;
+    }
+
+    return false;
+}
+
+/*
+ * Purpose: Handles the complete sorting menu.
+ * Parameters: None.
+ * Return value: true when sorting changed the inventory order.
+ */
+static bool handleSort()
+{
+    sortField field = sortByPrice;
+    sortAlgorithm algorithm = quickSortAlgorithm;
+
+    clearScreen();
+    displayTitle("Sort Products");
+
+    if (!readSortField(&field) || !readSortAlgorithm(&algorithm))
+    {
+        std::cout << "\nError: invalid sort choice.\n";
+        waitForEnter();
+        return false;
+    }
+
+    if (!sortInventory(field, algorithm))
+    {
+        std::cout << "\nBogo Sort was not started because the inventory has ";
+        std::cout << "more than 8 products.\n";
+        std::cout << "Use Quick Sort for the full inventory.\n";
+        waitForEnter();
+        return false;
+    }
+
+    std::cout << "\nProducts sorted with ";
+    std::cout << (algorithm == quickSortAlgorithm ? "Quick Sort" : "Bogo Sort");
+    std::cout << " by ";
+    std::cout << (field == sortByPrice ? "price" : "quantity") << ".\n";
+    waitForEnter();
+    return true;
 }
 
 /*
@@ -343,9 +515,9 @@ static void handleDeleteProduct()
     displayTitle("Delete Product");
 
     const int index = readProductIndex("Product number: ");
-    Product product = {};
+    product item = {};
 
-    if (!getProductForDisplay(index, &product))
+    if (!getProductForDisplay(index, &item))
     {
         std::cout << "\nError: invalid product number.\n";
         waitForEnter();
@@ -359,7 +531,7 @@ static void handleDeleteProduct()
         return;
     }
 
-    std::cout << "\nDeleted: " << product.name << "\n";
+    std::cout << "\nDeleted: " << item.name << "\n";
     waitForEnter();
 }
 
@@ -403,16 +575,19 @@ static void displayMenu(const char* inventoryFilePath)
     displayTitle("Main Menu");
     std::cout << "Data file: " << inventoryFilePath << "\n";
     std::cout << "Loaded products: " << getProductCountForDisplay() << "\n\n";
-    std::cout << "1. Show products\n";
-    std::cout << "2. Add product\n";
-    std::cout << "3. Sort by price\n";
-    std::cout << "4. Sort by quantity\n";
-    std::cout << "5. Search by name\n";
-    std::cout << "6. Show total inventory value\n";
-    std::cout << "7. Update product quantity\n";
-    std::cout << "8. Delete product\n";
-    std::cout << "9. Save\n";
-    std::cout << "10. Reload from file\n";
+    std::cout << "View\n";
+    std::cout << "  1. Show products\n";
+    std::cout << "  2. Search by name\n";
+    std::cout << "  3. Search by quantity\n";
+    std::cout << "  4. Show total inventory value\n\n";
+    std::cout << "Edit\n";
+    std::cout << "  5. Add product\n";
+    std::cout << "  6. Update product quantity\n";
+    std::cout << "  7. Delete product\n\n";
+    std::cout << "Tools\n";
+    std::cout << "  8. Sort products\n";
+    std::cout << "  9. Save\n";
+    std::cout << " 10. Reload from file\n";
     std::cout << "0. Save and exit\n\n";
     std::cout << "Choose: ";
 }
@@ -435,6 +610,12 @@ void renderUI(const char* inventoryFilePath)
 
         if (!(std::cin >> choice))
         {
+            if (std::cin.eof())
+            {
+                running = false;
+                continue;
+            }
+
             clearInput();
             displayMessage("Input Error", "Enter a valid menu number.");
             continue;
@@ -448,32 +629,31 @@ void renderUI(const char* inventoryFilePath)
             displayProducts(foundIndex);
             break;
         case 2:
+            handleSearchByName(&foundIndex);
+            break;
+        case 3:
+            handleSearchByQuantity();
+            break;
+        case 4:
+            displayTotalValue();
+            break;
+        case 5:
             handleAddProduct();
             foundIndex = -1;
             break;
-        case 3:
-            sortInventoryByPrice();
-            foundIndex = -1;
-            displayMessage("Sort", "Products sorted by price.");
-            break;
-        case 4:
-            sortInventoryByQuantity();
-            foundIndex = -1;
-            displayMessage("Sort", "Products sorted by quantity.");
-            break;
-        case 5:
-            handleSearch(&foundIndex);
-            break;
         case 6:
-            displayTotalValue();
-            break;
-        case 7:
             handleUpdateQuantity();
             foundIndex = -1;
             break;
-        case 8:
+        case 7:
             handleDeleteProduct();
             foundIndex = -1;
+            break;
+        case 8:
+            if (handleSort())
+            {
+                foundIndex = -1;
+            }
             break;
         case 9:
             displayMessage(

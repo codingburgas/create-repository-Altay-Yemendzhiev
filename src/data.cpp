@@ -3,7 +3,7 @@
 #include <cstdio>
 #include <cstring>
 
-static Product inventory[MAX_PRODUCTS];
+static product inventory[maxProducts];
 static int productCount = 0;
 
 /*
@@ -51,22 +51,22 @@ bool loadFromFile(const char* filename)
     char line[256];
 
     while (std::fgets(line, sizeof(line), file) != nullptr
-        && productCount < MAX_PRODUCTS)
+        && productCount < maxProducts)
     {
         trimLineEnd(line);
 
-        Product product = {};
+        product item = {};
         const int scanned = std::sscanf(
             line,
             "%99[^,],%f,%d",
-            product.name,
-            &product.price,
-            &product.quantity
+            item.name,
+            &item.price,
+            &item.quantity
         );
 
-        if (scanned == 3 && product.price >= 0.0f && product.quantity >= 0)
+        if (scanned == 3 && item.price >= 0.0f && item.quantity >= 0)
         {
-            inventory[productCount] = product;
+            inventory[productCount] = item;
             ++productCount;
         }
     }
@@ -114,14 +114,14 @@ bool saveToFile(const char* filename)
  * Parameters: product - product value to append to the inventory.
  * Return value: true when the product was added, otherwise false when full.
  */
-bool addProduct(Product product)
+bool addProduct(product item)
 {
-    if (productCount >= MAX_PRODUCTS)
+    if (productCount >= maxProducts)
     {
         return false;
     }
 
-    inventory[productCount] = product;
+    inventory[productCount] = item;
     ++productCount;
     return true;
 }
@@ -131,14 +131,14 @@ bool addProduct(Product product)
  * Parameters: index - zero-based product index, product - new product data.
  * Return value: true when the product was replaced, otherwise false.
  */
-bool updateProduct(int index, Product product)
+bool updateProduct(int index, product item)
 {
     if (index < 0 || index >= productCount)
     {
         return false;
     }
 
-    inventory[index] = product;
+    inventory[index] = item;
     return true;
 }
 
@@ -168,14 +168,14 @@ bool removeProduct(int index)
  * Parameters: index - zero-based product index, product - destination pointer.
  * Return value: true when a product was copied, otherwise false.
  */
-bool getProduct(int index, Product* product)
+bool getProduct(int index, product* item)
 {
-    if (product == nullptr || index < 0 || index >= productCount)
+    if (item == nullptr || index < 0 || index >= productCount)
     {
         return false;
     }
 
-    *product = inventory[index];
+    *item = inventory[index];
     return true;
 }
 
@@ -184,7 +184,7 @@ bool getProduct(int index, Product* product)
  * Parameters: None.
  * Return value: Pointer to the first product in the inventory array.
  */
-Product* getInventory()
+product* getInventory()
 {
     return inventory;
 }

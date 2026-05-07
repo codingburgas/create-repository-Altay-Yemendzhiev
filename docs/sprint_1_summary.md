@@ -7,7 +7,7 @@
 - Improved the terminal app so each action opens a clean screen.
 - Added paging for the product table.
 - Added update and delete actions.
-- Added around 300 inventory products to the CSV file.
+- Added a focused inventory CSV with 80 products.
 - Added basic tests for data and logic behavior.
 
 ## Challenges

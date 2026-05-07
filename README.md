@@ -1,8 +1,8 @@
 # Inventory Management System
 
 Terminal version of a C++ inventory management project for 9th grade.
-The project follows a three-layer architecture and is prepared so a Dear ImGui
-presentation layer can be added later.
+The project follows the required three-layer architecture and is ready for a
+Dear ImGui presentation layer later.
 
 ## Features
 
@@ -11,46 +11,47 @@ presentation layer can be added later.
 - Add products
 - Update product quantities
 - Delete products
-- Sort products by price with Bubble Sort
-- Sort products by quantity with Bubble Sort
+- Sort products by price or quantity with Quick Sort
+- Try Bogo Sort as a small joke/demo option
 - Search products by name with Linear Search
+- Search products by exact quantity with Linear Search
 - Calculate total inventory value with recursion
-- Clear terminal screens between actions so the interface does not stack text
+- Clear terminal screens between actions
 
 ## Project Structure
 
 ```text
 project-root/
-├── CMakeLists.txt
-├── README.md
-├── include/
-│   ├── data.h
-│   ├── logic.h
-│   └── presentation.h
-├── src/
-│   ├── data.cpp
-│   ├── logic.cpp
-│   ├── presentation.cpp
-│   └── main.cpp
-├── tests/
-│   ├── data_tests.cpp
-│   └── logic_tests.cpp
-├── docs/
-│   ├── architecture_diagram.drawio
-│   ├── backend_integration.md
-│   ├── flowchart.drawio
-│   ├── sprint_1_summary.md
-│   ├── sprint_plan.md
-│   └── user_guide.md
-└── resources/
-    └── products.csv
+|-- CMakeLists.txt
+|-- README.md
+|-- include/
+|   |-- data.h
+|   |-- logic.h
+|   `-- presentation.h
+|-- src/
+|   |-- data.cpp
+|   |-- logic.cpp
+|   |-- presentation.cpp
+|   `-- main.cpp
+|-- tests/
+|   |-- data_tests.cpp
+|   `-- logic_tests.cpp
+|-- docs/
+|   |-- architecture_diagram.drawio
+|   |-- backend_integration.md
+|   |-- flowchart.drawio
+|   |-- sprint_1_summary.md
+|   |-- sprint_plan.md
+|   `-- user_guide.md
+`-- resources/
+    `-- products.csv
 ```
 
-The repository intentionally has only 8 `.cpp` and `.h` files. Build folders,
-Visual Studio files, executables, and large dependency source drops are ignored.
-When Dear ImGui is added, use a Git submodule, package manager, or CMake download
-inside the ignored build folder instead of copying the full ImGui source into a
-normal commit.
+The repository intentionally has fewer than 18 `.cpp` and `.h` files. Build
+folders, Visual Studio files, executables, and large dependency source drops are
+ignored. When Dear ImGui is added, use a Git submodule, package manager, or
+CMake download inside the ignored build folder instead of copying the full ImGui
+source into a normal commit.
 
 ## Architecture
 

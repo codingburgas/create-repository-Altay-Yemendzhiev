@@ -7,19 +7,39 @@
 
 #include "data.h"
 
-/*
- * Purpose: Sorts products in ascending order by price using Bubble Sort.
- * Parameters: products - product array to sort, count - number of products.
- * Return value: None.
- */
-void bubbleSortByPrice(Product products[], int count);
+enum sortField
+{
+    sortByPrice,
+    sortByQuantity
+};
+
+enum sortAlgorithm
+{
+    quickSortAlgorithm,
+    bogoSortAlgorithm
+};
 
 /*
- * Purpose: Sorts products in ascending order by quantity using Bubble Sort.
+ * Purpose: Sorts products in ascending order by price using Quick Sort.
  * Parameters: products - product array to sort, count - number of products.
  * Return value: None.
  */
-void bubbleSortByQuantity(Product products[], int count);
+void quickSortByPrice(product products[], int count);
+
+/*
+ * Purpose: Sorts products in ascending order by quantity using Quick Sort.
+ * Parameters: products - product array to sort, count - number of products.
+ * Return value: None.
+ */
+void quickSortByQuantity(product products[], int count);
+
+/*
+ * Purpose: Sorts a small product array using Bogo Sort.
+ * Parameters: products - product array to sort, count - number of products,
+ *             field - product field used for comparison.
+ * Return value: true when sorted, otherwise false after the attempt limit.
+ */
+bool bogoSortProducts(product products[], int count, sortField field);
 
 /*
  * Purpose: Finds a product by name using a linear search.
@@ -27,14 +47,27 @@ void bubbleSortByQuantity(Product products[], int count);
  *             query - name or partial name to find.
  * Return value: Matching index when found, otherwise -1.
  */
-int linearSearchByName(Product products[], int count, const char* query);
+int linearSearchByName(product products[], int count, const char* query);
+
+/*
+ * Purpose: Finds a product by quantity using a linear search.
+ * Parameters: products - product array to search, count - number of products,
+ *             quantity - exact quantity to find, startIndex - first index to check.
+ * Return value: Matching index when found, otherwise -1.
+ */
+int linearSearchByQuantity(
+    product products[],
+    int count,
+    int quantity,
+    int startIndex
+);
 
 /*
  * Purpose: Recursively calculates the total inventory value.
  * Parameters: products - product array to total, count - number of products.
  * Return value: Sum of price multiplied by quantity for all products.
  */
-float calculateTotalValueRecursive(Product products[], int count);
+float calculateTotalValueRecursive(product products[], int count);
 
 /*
  * Purpose: Validates user input and adds a product through the data layer.
@@ -59,18 +92,19 @@ bool updateProductQuantity(int index, int quantity);
 bool deleteProductByIndex(int index);
 
 /*
- * Purpose: Sorts the stored inventory by price.
- * Parameters: None.
- * Return value: None.
+ * Purpose: Sorts the stored inventory.
+ * Parameters: field - field used for comparison,
+ *             algorithm - selected sorting algorithm.
+ * Return value: true when sorting succeeds, otherwise false.
  */
-void sortInventoryByPrice();
+bool sortInventory(sortField field, sortAlgorithm algorithm);
 
 /*
- * Purpose: Sorts the stored inventory by quantity.
- * Parameters: None.
- * Return value: None.
+ * Purpose: Searches the stored inventory by exact quantity.
+ * Parameters: quantity - quantity to find, startIndex - first index to check.
+ * Return value: Matching index when found, otherwise -1.
  */
-void sortInventoryByQuantity();
+int findProductByQuantity(int quantity, int startIndex);
 
 /*
  * Purpose: Searches the stored inventory by name.
@@ -91,7 +125,7 @@ float calculateInventoryTotalValue();
  * Parameters: index - zero-based product index, product - destination pointer.
  * Return value: true when a product was copied, otherwise false.
  */
-bool getProductForDisplay(int index, Product* product);
+bool getProductForDisplay(int index, product* item);
 
 /*
  * Purpose: Provides product count access to the presentation layer.

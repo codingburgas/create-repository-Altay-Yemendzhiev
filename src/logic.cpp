@@ -1,7 +1,9 @@
 #include "../include/logic.h"
 
 #include <cctype>
+#include <cstdlib>
 #include <cstring>
+#include <ctime>
 
 /*
  * Purpose: Checks whether a product name contains at least one visible character.
@@ -31,10 +33,10 @@ static bool hasVisibleText(const char* name)
  * Parameters: destination - target buffer, source - text to copy.
  * Return value: None.
  */
-static void copyProductName(char destination[MAX_NAME_LENGTH], const char* source)
+static void copyProductName(char destination[maxNameLength], const char* source)
 {
-    std::strncpy(destination, source, MAX_NAME_LENGTH - 1);
-    destination[MAX_NAME_LENGTH - 1] = '\0';
+    std::strncpy(destination, source, maxNameLength - 1);
+    destination[maxNameLength - 1] = '\0';
 }
 
 /*
@@ -91,55 +93,168 @@ static bool containsIgnoreCase(const char* text, const char* query)
 }
 
 /*
- * Purpose: Sorts products in ascending order by price using Bubble Sort.
- * Parameters: products - product array to sort, count - number of products.
+ * Purpose: Swaps two products.
+ * Parameters: left - first product, right - second product.
  * Return value: None.
  */
-void bubbleSortByPrice(Product products[], int count)
+static void swapProducts(product* left, product* right)
 {
-    if (products == nullptr || count <= 1)
+    product temp = *left;
+    *left = *right;
+    *right = temp;
+}
+
+/*
+ * Purpose: Compares two products by the selected sort field.
+ * Parameters: left - first product, right - second product,
+ *             field - field used for comparison.
+ * Return value: true when left should be before or equal to right.
+ */
+static bool comesBeforeOrEqual(product left, product right, sortField field)
+{
+    if (field == sortByQuantity)
+    {
+        return left.quantity <= right.quantity;
+    }
+
+    return left.price <= right.price;
+}
+
+/*
+ * Purpose: Partitions a product array for Quick Sort.
+ * Parameters: products - product array, low - first index, high - last index,
+ *             field - field used for comparison.
+ * Return value: Final pivot index.
+ */
+static int partitionProducts(product products[], int low, int high, sortField field)
+{
+    const product pivot = products[high];
+    int smallerIndex = low - 1;
+
+    for (int currentIndex = low; currentIndex < high; ++currentIndex)
+    {
+        if (comesBeforeOrEqual(products[currentIndex], pivot, field))
+        {
+            ++smallerIndex;
+            swapProducts(&products[smallerIndex], &products[currentIndex]);
+        }
+    }
+
+    swapProducts(&products[smallerIndex + 1], &products[high]);
+    return smallerIndex + 1;
+}
+
+/*
+ * Purpose: Recursively sorts products using Quick Sort.
+ * Parameters: products - product array, low - first index, high - last index,
+ *             field - field used for comparison.
+ * Return value: None.
+ */
+static void quickSortProducts(product products[], int low, int high, sortField field)
+{
+    if (products == nullptr || low >= high)
     {
         return;
     }
 
-    for (int i = 0; i < count - 1; ++i)
+    const int pivotIndex = partitionProducts(products, low, high, field);
+    quickSortProducts(products, low, pivotIndex - 1, field);
+    quickSortProducts(products, pivotIndex + 1, high, field);
+}
+
+/*
+ * Purpose: Checks whether products are sorted by the selected field.
+ * Parameters: products - product array, count - number of products,
+ *             field - field used for comparison.
+ * Return value: true when the array is sorted.
+ */
+static bool isSorted(product products[], int count, sortField field)
+{
+    for (int i = 1; i < count; ++i)
     {
-        for (int j = 0; j < count - i - 1; ++j)
+        if (!comesBeforeOrEqual(products[i - 1], products[i], field))
         {
-            if (products[j].price > products[j + 1].price)
-            {
-                const Product temp = products[j];
-                products[j] = products[j + 1];
-                products[j + 1] = temp;
-            }
+            return false;
         }
+    }
+
+    return true;
+}
+
+/*
+ * Purpose: Randomly shuffles products for Bogo Sort.
+ * Parameters: products - product array, count - number of products.
+ * Return value: None.
+ */
+static void shuffleProducts(product products[], int count)
+{
+    static bool randomSeeded = false;
+
+    if (!randomSeeded)
+    {
+        std::srand(static_cast<unsigned int>(std::time(nullptr)));
+        randomSeeded = true;
+    }
+
+    for (int i = count - 1; i > 0; --i)
+    {
+        const int randomIndex = std::rand() % (i + 1);
+        swapProducts(&products[i], &products[randomIndex]);
     }
 }
 
 /*
- * Purpose: Sorts products in ascending order by quantity using Bubble Sort.
+ * Purpose: Sorts products in ascending order by price using Quick Sort.
  * Parameters: products - product array to sort, count - number of products.
  * Return value: None.
  */
-void bubbleSortByQuantity(Product products[], int count)
+void quickSortByPrice(product products[], int count)
 {
+    quickSortProducts(products, 0, count - 1, sortByPrice);
+}
+
+/*
+ * Purpose: Sorts products in ascending order by quantity using Quick Sort.
+ * Parameters: products - product array to sort, count - number of products.
+ * Return value: None.
+ */
+void quickSortByQuantity(product products[], int count)
+{
+    quickSortProducts(products, 0, count - 1, sortByQuantity);
+}
+
+/*
+ * Purpose: Sorts a small product array using Bogo Sort.
+ * Parameters: products - product array to sort, count - number of products,
+ *             field - product field used for comparison.
+ * Return value: true when sorted, otherwise false after the attempt limit.
+ */
+bool bogoSortProducts(product products[], int count, sortField field)
+{
+    const int maxBogoItems = 8;
+    const int maxAttempts = 20000;
+
     if (products == nullptr || count <= 1)
     {
-        return;
+        return true;
     }
 
-    for (int i = 0; i < count - 1; ++i)
+    if (count > maxBogoItems)
     {
-        for (int j = 0; j < count - i - 1; ++j)
-        {
-            if (products[j].quantity > products[j + 1].quantity)
-            {
-                const Product temp = products[j];
-                products[j] = products[j + 1];
-                products[j + 1] = temp;
-            }
-        }
+        return false;
     }
+
+    for (int attempt = 0; attempt < maxAttempts; ++attempt)
+    {
+        if (isSorted(products, count, field))
+        {
+            return true;
+        }
+
+        shuffleProducts(products, count);
+    }
+
+    return isSorted(products, count, field);
 }
 
 /*
@@ -148,7 +263,7 @@ void bubbleSortByQuantity(Product products[], int count)
  *             query - name or partial name to find.
  * Return value: Matching index when found, otherwise -1.
  */
-int linearSearchByName(Product products[], int count, const char* query)
+int linearSearchByName(product products[], int count, const char* query)
 {
     if (products == nullptr || query == nullptr || query[0] == '\0')
     {
@@ -167,11 +282,40 @@ int linearSearchByName(Product products[], int count, const char* query)
 }
 
 /*
+ * Purpose: Finds a product by quantity using a linear search.
+ * Parameters: products - product array to search, count - number of products,
+ *             quantity - exact quantity to find, startIndex - first index to check.
+ * Return value: Matching index when found, otherwise -1.
+ */
+int linearSearchByQuantity(
+    product products[],
+    int count,
+    int quantity,
+    int startIndex
+)
+{
+    if (products == nullptr || quantity < 0 || startIndex < 0)
+    {
+        return -1;
+    }
+
+    for (int i = startIndex; i < count; ++i)
+    {
+        if (products[i].quantity == quantity)
+        {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+/*
  * Purpose: Recursively calculates the total inventory value.
  * Parameters: products - product array to total, count - number of products.
  * Return value: Sum of price multiplied by quantity for all products.
  */
-float calculateTotalValueRecursive(Product products[], int count)
+float calculateTotalValueRecursive(product products[], int count)
 {
     if (products == nullptr || count <= 0)
     {
@@ -195,12 +339,12 @@ bool addNewProduct(const char* name, float price, int quantity)
         return false;
     }
 
-    Product product = {};
-    copyProductName(product.name, name);
-    product.price = price;
-    product.quantity = quantity;
+    product item = {};
+    copyProductName(item.name, name);
+    item.price = price;
+    item.quantity = quantity;
 
-    return addProduct(product);
+    return addProduct(item);
 }
 
 /*
@@ -215,15 +359,15 @@ bool updateProductQuantity(int index, int quantity)
         return false;
     }
 
-    Product product = {};
+    product item = {};
 
-    if (!getProduct(index, &product))
+    if (!getProduct(index, &item))
     {
         return false;
     }
 
-    product.quantity = quantity;
-    return updateProduct(index, product);
+    item.quantity = quantity;
+    return updateProduct(index, item);
 }
 
 /*
@@ -237,23 +381,23 @@ bool deleteProductByIndex(int index)
 }
 
 /*
- * Purpose: Sorts the stored inventory by price.
- * Parameters: None.
- * Return value: None.
+ * Purpose: Sorts the stored inventory.
+ * Parameters: field - field used for comparison,
+ *             algorithm - selected sorting algorithm.
+ * Return value: true when sorting succeeds, otherwise false.
  */
-void sortInventoryByPrice()
+bool sortInventory(sortField field, sortAlgorithm algorithm)
 {
-    bubbleSortByPrice(getInventory(), getProductCount());
-}
+    product* products = getInventory();
+    const int count = getProductCount();
 
-/*
- * Purpose: Sorts the stored inventory by quantity.
- * Parameters: None.
- * Return value: None.
- */
-void sortInventoryByQuantity()
-{
-    bubbleSortByQuantity(getInventory(), getProductCount());
+    if (algorithm == bogoSortAlgorithm)
+    {
+        return bogoSortProducts(products, count, field);
+    }
+
+    quickSortProducts(products, 0, count - 1, field);
+    return true;
 }
 
 /*
@@ -264,6 +408,21 @@ void sortInventoryByQuantity()
 int findProductByName(const char* query)
 {
     return linearSearchByName(getInventory(), getProductCount(), query);
+}
+
+/*
+ * Purpose: Searches the stored inventory by exact quantity.
+ * Parameters: quantity - quantity to find, startIndex - first index to check.
+ * Return value: Matching index when found, otherwise -1.
+ */
+int findProductByQuantity(int quantity, int startIndex)
+{
+    return linearSearchByQuantity(
+        getInventory(),
+        getProductCount(),
+        quantity,
+        startIndex
+    );
 }
 
 /*
@@ -281,9 +440,9 @@ float calculateInventoryTotalValue()
  * Parameters: index - zero-based product index, product - destination pointer.
  * Return value: true when a product was copied, otherwise false.
  */
-bool getProductForDisplay(int index, Product* product)
+bool getProductForDisplay(int index, product* item)
 {
-    return getProduct(index, product);
+    return getProduct(index, item);
 }
 
 /*

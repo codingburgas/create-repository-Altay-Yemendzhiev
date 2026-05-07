@@ -3,38 +3,38 @@
 #include <cassert>
 #include <cstring>
 
-static Product makeProduct(const char* name, float price, int quantity)
+static product makeProduct(const char* name, float price, int quantity)
 {
-    Product product = {};
-    std::strncpy(product.name, name, MAX_NAME_LENGTH - 1);
-    product.name[MAX_NAME_LENGTH - 1] = '\0';
-    product.price = price;
-    product.quantity = quantity;
-    return product;
+    product item = {};
+    std::strncpy(item.name, name, maxNameLength - 1);
+    item.name[maxNameLength - 1] = '\0';
+    item.price = price;
+    item.quantity = quantity;
+    return item;
 }
 
 void runDataTests()
 {
     assert(loadFromFile("resources/products.csv"));
-    assert(getProductCount() == 300);
+    assert(getProductCount() == 80);
 
-    Product loadedProduct = {};
-    assert(getProduct(0, &loadedProduct));
-    assert(std::strcmp(loadedProduct.name, "Darittas Nacho Chips Mini Pack") == 0);
+    product loadedItem = {};
+    assert(getProduct(0, &loadedItem));
+    assert(std::strcmp(loadedItem.name, "darittas nacho chips mini pack") == 0);
 
-    assert(addProduct(makeProduct("Test Chips", 2.50f, 10)));
-    assert(addProduct(makeProduct("Test Soda", 1.20f, 5)));
-    assert(getProductCount() == 302);
+    assert(addProduct(makeProduct("test chips", 2.50f, 10)));
+    assert(addProduct(makeProduct("test soda", 1.20f, 5)));
+    assert(getProductCount() == 82);
 
-    Product product = {};
-    assert(getProduct(300, &product));
-    assert(std::strcmp(product.name, "Test Chips") == 0);
+    product item = {};
+    assert(getProduct(80, &item));
+    assert(std::strcmp(item.name, "test chips") == 0);
 
-    assert(updateProduct(300, makeProduct("Updated Chips", 2.75f, 8)));
-    assert(getProduct(300, &product));
-    assert(std::strcmp(product.name, "Updated Chips") == 0);
-    assert(product.quantity == 8);
+    assert(updateProduct(80, makeProduct("updated chips", 2.75f, 8)));
+    assert(getProduct(80, &item));
+    assert(std::strcmp(item.name, "updated chips") == 0);
+    assert(item.quantity == 8);
 
-    assert(removeProduct(301));
-    assert(getProductCount() == 301);
+    assert(removeProduct(81));
+    assert(getProductCount() == 81);
 }

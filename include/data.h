@@ -7,13 +7,13 @@
 
 enum
 {
-    MAX_PRODUCTS = 500,
-    MAX_NAME_LENGTH = 100
+    maxProducts = 200,
+    maxNameLength = 100
 };
 
-struct Product
+struct product
 {
-    char name[MAX_NAME_LENGTH];
+    char name[maxNameLength];
     float price;
     int quantity;
 };
@@ -37,14 +37,14 @@ bool saveToFile(const char* filename);
  * Parameters: product - product value to append to the inventory.
  * Return value: true when the product was added, otherwise false when full.
  */
-bool addProduct(Product product);
+bool addProduct(product item);
 
 /*
  * Purpose: Replaces one product at a valid inventory index.
  * Parameters: index - zero-based product index, product - new product data.
  * Return value: true when the product was replaced, otherwise false.
  */
-bool updateProduct(int index, Product product);
+bool updateProduct(int index, product item);
 
 /*
  * Purpose: Removes one product from the inventory.
@@ -58,14 +58,14 @@ bool removeProduct(int index);
  * Parameters: index - zero-based product index, product - destination pointer.
  * Return value: true when a product was copied, otherwise false.
  */
-bool getProduct(int index, Product* product);
+bool getProduct(int index, product* item);
 
 /*
  * Purpose: Provides access to the inventory array for the logic layer.
  * Parameters: None.
  * Return value: Pointer to the first product in the inventory array.
  */
-Product* getInventory();
+product* getInventory();
 
 /*
  * Purpose: Provides the number of products currently stored.
