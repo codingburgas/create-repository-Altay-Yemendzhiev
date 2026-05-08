@@ -2,8 +2,8 @@
 
 ## Sprint Goal
 
-Create a clean terminal version of the Inventory Management System that follows
-the required three-layer architecture and is ready for a later Dear ImGui UI.
+Create a clean Inventory Management System that follows the required
+three-layer architecture and uses a Qt desktop interface.
 
 ## Tasks
 

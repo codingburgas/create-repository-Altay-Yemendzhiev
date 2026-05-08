@@ -2,50 +2,42 @@ cmake_minimum_required(VERSION 3.20)
 
 project(InventoryManager LANGUAGES CXX)
 
-include(FetchContent)
-
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-FetchContent_Declare(
-    imgui
-    GIT_REPOSITORY https://github.com/ocornut/imgui.git
-    GIT_TAG v1.91.9b
-)
+if (WIN32 AND EXISTS "C:/Qt/6.11.0/mingw_64")
+    list(APPEND CMAKE_PREFIX_PATH "C:/Qt/6.11.0/mingw_64")
+endif()
 
-FetchContent_MakeAvailable(imgui)
+find_package(Qt6 REQUIRED COMPONENTS Widgets)
+qt_standard_project_setup()
 
-add_executable(InventoryManager
-    ${imgui_SOURCE_DIR}/imgui.cpp
-    ${imgui_SOURCE_DIR}/imgui_draw.cpp
-    ${imgui_SOURCE_DIR}/imgui_tables.cpp
-    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
-    ${imgui_SOURCE_DIR}/backends/imgui_impl_dx11.cpp
-    ${imgui_SOURCE_DIR}/backends/imgui_impl_win32.cpp
+qt_add_executable(InventoryManager
     src/data.cpp
     src/logic.cpp
     src/presentation.cpp
     src/main.cpp
 )
 
-target_include_directories(InventoryManager PRIVATE
-    include
-    ${imgui_SOURCE_DIR}
-    ${imgui_SOURCE_DIR}/backends
-)
+target_include_directories(InventoryManager PRIVATE include)
 
-target_link_libraries(InventoryManager PRIVATE
-    d3d11
-    d3dcompiler
-    dxgi
-)
+target_link_libraries(InventoryManager PRIVATE Qt6::Widgets)
 
 add_custom_command(TARGET InventoryManager POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/resources
         $<TARGET_FILE_DIR:InventoryManager>/resources
 )
+
+if (WIN32 AND TARGET Qt6::windeployqt)
+    add_custom_command(TARGET InventoryManager POST_BUILD
+        COMMAND Qt6::windeployqt
+            --no-translations
+            --no-system-d3d-compiler
+            "$<TARGET_FILE:InventoryManager>"
+    )
+endif()
 
 add_executable(InventoryTests
     tests/data_tests.cpp

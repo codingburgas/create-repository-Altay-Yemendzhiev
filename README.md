@@ -1,12 +1,12 @@
 # Lapis Technologies
 
-Dear ImGui version of a C++ inventory management project for 9th grade.
+Qt Widgets version of a C++ inventory management project for 9th grade.
 The project follows the required three-layer architecture.
 
 ## Features
 
 - Load and save products from `resources/products.csv`
-- Show products in a Dear ImGui table
+- Show products in a professional Qt table
 - Add products
 - Update product quantities
 - Delete products
@@ -18,7 +18,7 @@ The project follows the required three-layer architecture.
 - Softer theme presets using the project color palette
 - Language selector for Bulgarian, Spanish, French, German, English, Turkish,
   Russian, and Hebrew
-- Top navigation with pop-up panels for settings, add, edit, sort, and file actions
+- Top navigation with panels for settings, add, edit, sort, and file actions
 
 ## Project Structure
 
@@ -50,9 +50,9 @@ project-root/
 ```
 
 The repository intentionally has fewer than 18 `.cpp` and `.h` files. Build
-folders, Visual Studio files, executables, and large dependency source drops are
-ignored. Dear ImGui is downloaded by CMake FetchContent into the ignored build
-folder, so the full ImGui source is not copied into normal commits.
+folders, Visual Studio files, executables, Qt deployment files, and large
+dependency source drops are ignored. Qt is used as an installed framework, not
+copied into the repository.
 
 ## Architecture
 
@@ -66,22 +66,23 @@ data layer for storage and file access.
 ## Build and Run
 
 ```powershell
-cmake -S . -B build
-cmake --build build --config Debug
-.\build\Debug\InventoryManager.exe
+$env:PATH="C:\Qt\Tools\mingw1310_64\bin;C:\Qt\Tools\Ninja;C:\Qt\Tools\CMake_64\bin;C:\Qt\6.11.0\mingw_64\bin;$env:PATH"
+cmake -S . -B build -G Ninja -DCMAKE_PREFIX_PATH=C:/Qt/6.11.0/mingw_64
+cmake --build build
+.\build\InventoryManager.exe
 ```
 
 You can also pass another CSV path:
 
 ```powershell
-.\build\Debug\InventoryManager.exe resources\products.csv
+.\build\InventoryManager.exe resources\products.csv
 ```
 
 ## Tests
 
 ```powershell
-cmake --build build --config Debug --target InventoryTests
-.\build\Debug\InventoryTests.exe
+cmake --build build --target InventoryTests
+.\build\InventoryTests.exe
 ```
 
 ## Team Roles
@@ -89,4 +90,4 @@ cmake --build build --config Debug --target InventoryTests
 - Scrum Master: project tracking, documentation, GitHub project board
 - Back-End Developer 1: data layer and file handling
 - Back-End Developer 2: sorting, searching, recursion, validation
-- Front-End Developer: Dear ImGui interface
+- Front-End Developer: Qt Widgets interface

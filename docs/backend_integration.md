@@ -1,12 +1,12 @@
 # Back-End Integration
 
-The Dear ImGui presentation layer does not read or write the data layer directly.
-It uses functions from `logic.h`.
+The Qt presentation layer does not read or write the data layer directly. It
+uses functions from `logic.h`.
 
 Main flow:
 
 1. `main.cpp` loads `resources/products.csv` through `loadInventoryFromFile`.
-2. `presentation.cpp` displays the Dear ImGui interface and reads user input.
+2. `presentation.cpp` displays the Qt interface and reads user input.
 3. `presentation.cpp` calls logic functions such as `sortInventory`,
    `findProductByName`, `findProductByQuantity`, `updateProductQuantity`, and
    `calculateInventoryTotalValue`.

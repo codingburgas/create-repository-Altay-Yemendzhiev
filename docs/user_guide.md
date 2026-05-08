@@ -1,12 +1,13 @@
 # Lapis Technologies User Guide
 
-Run the application to open the Dear ImGui window.
+Run the application to open the Qt desktop window.
 
 ## Main Controls
 
 - Use the top navigation buttons to open small panels for settings, adding,
   editing, sorting, and file actions.
-- Use the theme controls to switch between Noir, Snow, Azure, and Bloom.
+- Use the theme controls to switch between Slate, Cloud, Harbor, Cherry, and
+  Midnight.
 - Use the language dropdown to switch between Bulgarian, Spanish, French,
   German, English, Turkish, Russian, and Hebrew.
 - Use the table search fields to filter products by name or exact quantity.

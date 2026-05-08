@@ -2,570 +2,974 @@
 
 #include "../include/logic.h"
 
-#include "imgui.h"
-#include "imgui_impl_dx11.h"
-#include "imgui_impl_win32.h"
+#include <QApplication>
+#include <QComboBox>
+#include <QDoubleSpinBox>
+#include <QFrame>
+#include <QFont>
+#include <QGridLayout>
+#include <QGroupBox>
+#include <QHeaderView>
+#include <QLabel>
+#include <QLineEdit>
+#include <QList>
+#include <QMainWindow>
+#include <QMessageBox>
+#include <QPushButton>
+#include <QVector>
+#include <QSpinBox>
+#include <QStackedWidget>
+#include <QTableWidget>
+#include <QTableWidgetItem>
+#include <QVBoxLayout>
 
-#include <d3d11.h>
-#include <tchar.h>
-#include <windows.h>
-
-#include <cstdio>
 #include <cstring>
 
-static ID3D11Device* d3dDevice = nullptr;
-static ID3D11DeviceContext* d3dDeviceContext = nullptr;
-static IDXGISwapChain* swapChain = nullptr;
-static ID3D11RenderTargetView* mainRenderTargetView = nullptr;
-
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(
-    HWND window,
-    UINT message,
-    WPARAM wordParam,
-    LPARAM longParam
-);
-
-enum language
+struct languageText
 {
-    bulgarianLanguage,
-    spanishLanguage,
-    frenchLanguage,
-    germanLanguage,
-    englishLanguage,
-    turkishLanguage,
-    russianLanguage,
-    hebrewLanguage,
-    languageCount
+    QString languageName;
+    QString windowTitle;
+    QString products;
+    QString settings;
+    QString addProduct;
+    QString editProduct;
+    QString sortProducts;
+    QString file;
+    QString productName;
+    QString price;
+    QString quantity;
+    QString add;
+    QString updateQuantity;
+    QString deleteProduct;
+    QString searchName;
+    QString exactQuantity;
+    QString clearFilters;
+    QString sortField;
+    QString sortAlgorithm;
+    QString sortByPrice;
+    QString sortByQuantity;
+    QString quickSort;
+    QString bogoSort;
+    QString applySort;
+    QString totalValue;
+    QString save;
+    QString reload;
+    QString theme;
+    QString language;
+    QString selectedProduct;
+    QString noSelection;
+    QString ready;
+    QString invalidInput;
+    QString productAdded;
+    QString quantityUpdated;
+    QString productDeleted;
+    QString sorted;
+    QString bogoBlocked;
+    QString saved;
+    QString loaded;
+    QString noProducts;
+    QString confirmDeleteTitle;
+    QString confirmDeleteText;
 };
 
-enum navPanel
+struct themeDefinition
 {
-    noPanel,
-    settingsPanel,
-    addPanel,
-    editPanel,
-    sortPanel,
-    filePanel
+    QString name;
+    QString window;
+    QString surface;
+    QString surfaceAlt;
+    QString border;
+    QString text;
+    QString mutedText;
+    QString accent;
+    QString accentSoft;
+    QString button;
+    QString buttonHover;
+    QString danger;
+    QString tableHeader;
 };
 
-enum appTheme
+static QVector<languageText> createTexts()
 {
-    calmNightTheme,
-    softSnowTheme,
-    blueBellTheme,
-    graphiteBloomTheme,
-    themeCount
-};
-
-struct themePalette
-{
-    const char* name;
-    ImVec4 text;
-    ImVec4 mutedText;
-    ImVec4 window;
-    ImVec4 panel;
-    ImVec4 panelAlt;
-    ImVec4 border;
-    ImVec4 field;
-    ImVec4 button;
-    ImVec4 buttonHover;
-    ImVec4 accent;
-    ImVec4 tableHeader;
-    ImVec4 row;
-    ImVec4 rowAlt;
-    ImVec4 selection;
-};
-
-struct uiText
-{
-    const char* languageName;
-    const char* title;
-    const char* products;
-    const char* controls;
-    const char* addProduct;
-    const char* productName;
-    const char* price;
-    const char* quantity;
-    const char* add;
-    const char* updateQuantity;
-    const char* deleteProduct;
-    const char* searchName;
-    const char* searchQuantity;
-    const char* exactQuantity;
-    const char* clearFilters;
-    const char* sortProducts;
-    const char* sortField;
-    const char* sortAlgorithm;
-    const char* sortByPrice;
-    const char* sortByQuantity;
-    const char* quickSort;
-    const char* bogoSort;
-    const char* applySort;
-    const char* totalValue;
-    const char* save;
-    const char* reload;
-    const char* theme;
-    const char* dark;
-    const char* light;
-    const char* languageLabel;
-    const char* status;
-    const char* selectRow;
-    const char* invalidInput;
-    const char* productAdded;
-    const char* quantityUpdated;
-    const char* productDeleted;
-    const char* sorted;
-    const char* bogoBlocked;
-    const char* saved;
-    const char* loaded;
-    const char* noProducts;
-};
-
-static const uiText texts[languageCount] = {
-    {
-        u8"Български", u8"Система за управление на магазин", u8"Продукти",
-        u8"Управление", u8"Добави продукт", u8"Име на продукт", u8"Цена",
-        u8"Количество", u8"Добави", u8"Обнови количество", u8"Изтрий продукт",
-        u8"Търсене по име", u8"Търсене по количество", u8"Точно количество",
-        u8"Изчисти",
-        u8"Сортиране", u8"Поле", u8"Алгоритъм", u8"Цена", u8"Количество",
-        u8"Бързо сортиране", u8"Бого сортиране", u8"Сортирай",
-        u8"Обща стойност", u8"Запази", u8"Презареди", u8"Тема", u8"Тъмна",
-        u8"Светла", u8"Език", u8"Състояние", u8"Изберете ред от таблицата.",
-        u8"Невалидни данни.", u8"Продуктът е добавен.",
-        u8"Количеството е обновено.", u8"Продуктът е изтрит.",
-        u8"Продуктите са сортирани.",
-        u8"Бого сортиране е блокирано за повече от 8 продукта.",
-        u8"Данните са запазени.", u8"Данните са заредени.", u8"Няма продукти."
-    },
-    {
-        u8"Español", u8"Sistema de inventario", u8"Productos", u8"Controles",
-        u8"Añadir producto", u8"Nombre del producto", u8"Precio", u8"Cantidad",
-        u8"Añadir", u8"Actualizar cantidad", u8"Eliminar producto",
-        u8"Buscar por nombre", u8"Buscar por cantidad", u8"Cantidad exacta",
-        u8"Limpiar",
-        u8"Ordenar productos", u8"Campo", u8"Algoritmo", u8"Precio",
-        u8"Cantidad", u8"Quick Sort", u8"Bogo Sort", u8"Ordenar",
-        u8"Valor total", u8"Guardar", u8"Recargar", u8"Tema", u8"Oscuro",
-        u8"Claro", u8"Idioma", u8"Estado", u8"Selecciona una fila.",
-        u8"Datos no válidos.", u8"Producto añadido.",
-        u8"Cantidad actualizada.", u8"Producto eliminado.",
-        u8"Productos ordenados.",
-        u8"Bogo Sort está bloqueado para más de 8 productos.",
-        u8"Datos guardados.", u8"Datos cargados.", u8"No hay productos."
-    },
-    {
-        u8"Français", u8"Système d'inventaire", u8"Produits", u8"Contrôles",
-        u8"Ajouter un produit", u8"Nom du produit", u8"Prix", u8"Quantité",
-        u8"Ajouter", u8"Mettre à jour", u8"Supprimer",
-        u8"Recherche par nom", u8"Recherche par quantité", u8"Quantité exacte",
-        u8"Effacer",
-        u8"Trier les produits", u8"Champ", u8"Algorithme", u8"Prix",
-        u8"Quantité", u8"Tri rapide", u8"Tri bogo", u8"Trier",
-        u8"Valeur totale", u8"Enregistrer", u8"Recharger", u8"Thème",
-        u8"Sombre", u8"Clair", u8"Langue", u8"État",
-        u8"Sélectionnez une ligne.", u8"Données invalides.",
-        u8"Produit ajouté.", u8"Quantité mise à jour.", u8"Produit supprimé.",
-        u8"Produits triés.",
-        u8"Le tri bogo est bloqué pour plus de 8 produits.",
-        u8"Données enregistrées.", u8"Données chargées.", u8"Aucun produit."
-    },
-    {
-        u8"Deutsch", u8"Lagerverwaltung", u8"Produkte", u8"Steuerung",
-        u8"Produkt hinzufügen", u8"Produktname", u8"Preis", u8"Menge",
-        u8"Hinzufügen", u8"Menge aktualisieren", u8"Produkt löschen",
-        u8"Nach Name suchen", u8"Nach Menge suchen", u8"Genaue Menge",
-        u8"Leeren",
-        u8"Produkte sortieren", u8"Feld", u8"Algorithmus", u8"Preis",
-        u8"Menge", u8"Quick Sort", u8"Bogo Sort", u8"Sortieren",
-        u8"Gesamtwert", u8"Speichern", u8"Neu laden", u8"Design", u8"Dunkel",
-        u8"Hell", u8"Sprache", u8"Status", u8"Wähle eine Zeile aus.",
-        u8"Ungültige Daten.", u8"Produkt hinzugefügt.",
-        u8"Menge aktualisiert.", u8"Produkt gelöscht.", u8"Produkte sortiert.",
-        u8"Bogo Sort ist bei mehr als 8 Produkten blockiert.",
-        u8"Daten gespeichert.", u8"Daten geladen.", u8"Keine Produkte."
-    },
-    {
-        "English", "Inventory management system", "Products", "Controls",
-        "Add product", "Product name", "Price", "Quantity", "Add",
-        "Update quantity", "Delete product", "Search by name",
-        "Search by quantity", "Exact quantity", "Clear", "Sort products", "Field",
-        "Algorithm", "Price", "Quantity", "Quick Sort", "Bogo Sort",
-        "Sort", "Total value", "Save", "Reload", "Theme", "Dark", "Light",
-        "Language", "Status", "Select a row from the table.", "Invalid data.",
-        "Product added.", "Quantity updated.", "Product deleted.",
-        "Products sorted.", "Bogo Sort is blocked for more than 8 products.",
-        "Data saved.", "Data loaded.", "No products."
-    },
-    {
-        u8"Türkçe", u8"Envanter yönetim sistemi", u8"Ürünler", u8"Kontroller",
-        u8"Ürün ekle", u8"Ürün adı", u8"Fiyat", u8"Adet", u8"Ekle",
-        u8"Adedi güncelle", u8"Ürünü sil", u8"Ada göre ara",
-        u8"Adede göre ara", u8"Tam adet", u8"Temizle",
-        u8"Ürünleri sırala", u8"Alan",
-        u8"Algoritma", u8"Fiyat", u8"Adet", u8"Hızlı sıralama",
-        u8"Bogo sıralama", u8"Sırala", u8"Toplam değer", u8"Kaydet",
-        u8"Yeniden yükle", u8"Tema", u8"Koyu", u8"Açık", u8"Dil", u8"Durum",
-        u8"Tablodan bir satır seçin.", u8"Geçersiz veri.",
-        u8"Ürün eklendi.", u8"Adet güncellendi.", u8"Ürün silindi.",
-        u8"Ürünler sıralandı.",
-        u8"Bogo sıralama 8 üründen fazlası için engellendi.",
-        u8"Veriler kaydedildi.", u8"Veriler yüklendi.", u8"Ürün yok."
-    },
-    {
-        u8"Русский", u8"Система учета склада", u8"Товары", u8"Управление",
-        u8"Добавить товар", u8"Название товара", u8"Цена", u8"Количество",
-        u8"Добавить", u8"Обновить количество", u8"Удалить товар",
-        u8"Поиск по названию", u8"Поиск по количеству", u8"Точное количество",
-        u8"Очистить", u8"Сортировка", u8"Поле", u8"Алгоритм", u8"Цена",
-        u8"Количество", u8"Быстрая сортировка", u8"Бого-сортировка",
-        u8"Сортировать", u8"Общая стоимость", u8"Сохранить",
-        u8"Перезагрузить", u8"Тема", u8"Темная", u8"Светлая", u8"Язык",
-        u8"Статус", u8"Выберите строку в таблице.", u8"Некорректные данные.",
-        u8"Товар добавлен.", u8"Количество обновлено.", u8"Товар удален.",
-        u8"Товары отсортированы.",
-        u8"Бого-сортировка заблокирована для более чем 8 товаров.",
-        u8"Данные сохранены.", u8"Данные загружены.", u8"Товаров нет."
-    },
-    {
-        u8"עברית", u8"מערכת מלאי", u8"מוצרים", u8"בקרה",
-        u8"הוסף מוצר", u8"שם מוצר", u8"מחיר", u8"כמות", u8"הוסף",
-        u8"עדכן כמות", u8"מחק מוצר", u8"חיפוש לפי שם",
-        u8"חיפוש לפי כמות", u8"כמות מדויקת", u8"נקה", u8"מיון מוצרים",
-        u8"שדה", u8"אלגוריתם", u8"מחיר", u8"כמות", u8"מיון מהיר",
-        u8"מיון בוגו", u8"מיין", u8"ערך כולל", u8"שמור", u8"טען מחדש",
-        u8"ערכת נושא", u8"כהה", u8"בהירה", u8"שפה", u8"מצב",
-        u8"בחר שורה מהטבלה.", u8"נתונים לא תקינים.", u8"המוצר נוסף.",
-        u8"הכמות עודכנה.", u8"המוצר נמחק.", u8"המוצרים מוינו.",
-        u8"מיון בוגו חסום עבור יותר מ-8 מוצרים.",
-        u8"הנתונים נשמרו.", u8"הנתונים נטענו.", u8"אין מוצרים."
-    }
-};
-
-static bool createDeviceD3D(HWND window)
-{
-    DXGI_SWAP_CHAIN_DESC swapChainDescription = {};
-    swapChainDescription.BufferCount = 2;
-    swapChainDescription.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    swapChainDescription.BufferDesc.RefreshRate.Numerator = 60;
-    swapChainDescription.BufferDesc.RefreshRate.Denominator = 1;
-    swapChainDescription.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-    swapChainDescription.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    swapChainDescription.OutputWindow = window;
-    swapChainDescription.SampleDesc.Count = 1;
-    swapChainDescription.Windowed = TRUE;
-    swapChainDescription.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-
-    const D3D_FEATURE_LEVEL featureLevelArray[2] = {
-        D3D_FEATURE_LEVEL_11_0,
-        D3D_FEATURE_LEVEL_10_0
+    return {
+        {
+            QStringLiteral("English"),
+            QStringLiteral("Lapis Technologies"),
+            QStringLiteral("Products"),
+            QStringLiteral("Settings"),
+            QStringLiteral("Add product"),
+            QStringLiteral("Edit product"),
+            QStringLiteral("Sort"),
+            QStringLiteral("File"),
+            QStringLiteral("Product name"),
+            QStringLiteral("Price"),
+            QStringLiteral("Quantity"),
+            QStringLiteral("Add"),
+            QStringLiteral("Update quantity"),
+            QStringLiteral("Delete product"),
+            QStringLiteral("Search by name"),
+            QStringLiteral("Exact quantity"),
+            QStringLiteral("Clear filters"),
+            QStringLiteral("Sort field"),
+            QStringLiteral("Algorithm"),
+            QStringLiteral("Price"),
+            QStringLiteral("Quantity"),
+            QStringLiteral("Quick Sort"),
+            QStringLiteral("Bogo Sort"),
+            QStringLiteral("Apply sort"),
+            QStringLiteral("Total value"),
+            QStringLiteral("Save"),
+            QStringLiteral("Reload"),
+            QStringLiteral("Theme"),
+            QStringLiteral("Language"),
+            QStringLiteral("Selected product"),
+            QStringLiteral("Select a product from the table."),
+            QStringLiteral("Ready."),
+            QStringLiteral("Invalid product data."),
+            QStringLiteral("Product added."),
+            QStringLiteral("Quantity updated."),
+            QStringLiteral("Product deleted."),
+            QStringLiteral("Products sorted."),
+            QStringLiteral("Bogo Sort is blocked for more than 8 products."),
+            QStringLiteral("Data saved."),
+            QStringLiteral("Data loaded."),
+            QStringLiteral("No products match the current filters."),
+            QStringLiteral("Delete product"),
+            QStringLiteral("Delete the selected product?")
+        },
+        {
+            QStringLiteral("Български"),
+            QStringLiteral("Lapis Technologies"),
+            QStringLiteral("Продукти"),
+            QStringLiteral("Настройки"),
+            QStringLiteral("Добави продукт"),
+            QStringLiteral("Редактирай"),
+            QStringLiteral("Сортиране"),
+            QStringLiteral("Файл"),
+            QStringLiteral("Име на продукт"),
+            QStringLiteral("Цена"),
+            QStringLiteral("Количество"),
+            QStringLiteral("Добави"),
+            QStringLiteral("Обнови количество"),
+            QStringLiteral("Изтрий продукт"),
+            QStringLiteral("Търсене по име"),
+            QStringLiteral("Точно количество"),
+            QStringLiteral("Изчисти филтрите"),
+            QStringLiteral("Поле за сортиране"),
+            QStringLiteral("Алгоритъм"),
+            QStringLiteral("Цена"),
+            QStringLiteral("Количество"),
+            QStringLiteral("Quick Sort"),
+            QStringLiteral("Bogo Sort"),
+            QStringLiteral("Сортирай"),
+            QStringLiteral("Обща стойност"),
+            QStringLiteral("Запази"),
+            QStringLiteral("Презареди"),
+            QStringLiteral("Тема"),
+            QStringLiteral("Език"),
+            QStringLiteral("Избран продукт"),
+            QStringLiteral("Изберете продукт от таблицата."),
+            QStringLiteral("Готово."),
+            QStringLiteral("Невалидни данни."),
+            QStringLiteral("Продуктът е добавен."),
+            QStringLiteral("Количеството е обновено."),
+            QStringLiteral("Продуктът е изтрит."),
+            QStringLiteral("Продуктите са сортирани."),
+            QStringLiteral("Bogo Sort е блокиран за повече от 8 продукта."),
+            QStringLiteral("Данните са запазени."),
+            QStringLiteral("Данните са заредени."),
+            QStringLiteral("Няма продукти с тези филтри."),
+            QStringLiteral("Изтриване"),
+            QStringLiteral("Да се изтрие ли избраният продукт?")
+        },
+        {
+            QStringLiteral("Español"),
+            QStringLiteral("Lapis Technologies"),
+            QStringLiteral("Productos"),
+            QStringLiteral("Ajustes"),
+            QStringLiteral("Añadir producto"),
+            QStringLiteral("Editar producto"),
+            QStringLiteral("Ordenar"),
+            QStringLiteral("Archivo"),
+            QStringLiteral("Nombre del producto"),
+            QStringLiteral("Precio"),
+            QStringLiteral("Cantidad"),
+            QStringLiteral("Añadir"),
+            QStringLiteral("Actualizar cantidad"),
+            QStringLiteral("Eliminar producto"),
+            QStringLiteral("Buscar por nombre"),
+            QStringLiteral("Cantidad exacta"),
+            QStringLiteral("Limpiar filtros"),
+            QStringLiteral("Campo"),
+            QStringLiteral("Algoritmo"),
+            QStringLiteral("Precio"),
+            QStringLiteral("Cantidad"),
+            QStringLiteral("Quick Sort"),
+            QStringLiteral("Bogo Sort"),
+            QStringLiteral("Ordenar"),
+            QStringLiteral("Valor total"),
+            QStringLiteral("Guardar"),
+            QStringLiteral("Recargar"),
+            QStringLiteral("Tema"),
+            QStringLiteral("Idioma"),
+            QStringLiteral("Producto seleccionado"),
+            QStringLiteral("Selecciona un producto de la tabla."),
+            QStringLiteral("Listo."),
+            QStringLiteral("Datos no válidos."),
+            QStringLiteral("Producto añadido."),
+            QStringLiteral("Cantidad actualizada."),
+            QStringLiteral("Producto eliminado."),
+            QStringLiteral("Productos ordenados."),
+            QStringLiteral("Bogo Sort está bloqueado para más de 8 productos."),
+            QStringLiteral("Datos guardados."),
+            QStringLiteral("Datos cargados."),
+            QStringLiteral("No hay productos con estos filtros."),
+            QStringLiteral("Eliminar producto"),
+            QStringLiteral("¿Eliminar el producto seleccionado?")
+        },
+        {
+            QStringLiteral("Français"),
+            QStringLiteral("Lapis Technologies"),
+            QStringLiteral("Produits"),
+            QStringLiteral("Paramètres"),
+            QStringLiteral("Ajouter un produit"),
+            QStringLiteral("Modifier"),
+            QStringLiteral("Trier"),
+            QStringLiteral("Fichier"),
+            QStringLiteral("Nom du produit"),
+            QStringLiteral("Prix"),
+            QStringLiteral("Quantité"),
+            QStringLiteral("Ajouter"),
+            QStringLiteral("Mettre à jour"),
+            QStringLiteral("Supprimer"),
+            QStringLiteral("Recherche par nom"),
+            QStringLiteral("Quantité exacte"),
+            QStringLiteral("Effacer les filtres"),
+            QStringLiteral("Champ"),
+            QStringLiteral("Algorithme"),
+            QStringLiteral("Prix"),
+            QStringLiteral("Quantité"),
+            QStringLiteral("Quick Sort"),
+            QStringLiteral("Bogo Sort"),
+            QStringLiteral("Trier"),
+            QStringLiteral("Valeur totale"),
+            QStringLiteral("Enregistrer"),
+            QStringLiteral("Recharger"),
+            QStringLiteral("Thème"),
+            QStringLiteral("Langue"),
+            QStringLiteral("Produit sélectionné"),
+            QStringLiteral("Sélectionnez un produit dans le tableau."),
+            QStringLiteral("Prêt."),
+            QStringLiteral("Données invalides."),
+            QStringLiteral("Produit ajouté."),
+            QStringLiteral("Quantité mise à jour."),
+            QStringLiteral("Produit supprimé."),
+            QStringLiteral("Produits triés."),
+            QStringLiteral("Bogo Sort est bloqué pour plus de 8 produits."),
+            QStringLiteral("Données enregistrées."),
+            QStringLiteral("Données chargées."),
+            QStringLiteral("Aucun produit avec ces filtres."),
+            QStringLiteral("Supprimer"),
+            QStringLiteral("Supprimer le produit sélectionné ?")
+        },
+        {
+            QStringLiteral("Deutsch"),
+            QStringLiteral("Lapis Technologies"),
+            QStringLiteral("Produkte"),
+            QStringLiteral("Einstellungen"),
+            QStringLiteral("Produkt hinzufügen"),
+            QStringLiteral("Produkt bearbeiten"),
+            QStringLiteral("Sortieren"),
+            QStringLiteral("Datei"),
+            QStringLiteral("Produktname"),
+            QStringLiteral("Preis"),
+            QStringLiteral("Menge"),
+            QStringLiteral("Hinzufügen"),
+            QStringLiteral("Menge aktualisieren"),
+            QStringLiteral("Produkt löschen"),
+            QStringLiteral("Nach Name suchen"),
+            QStringLiteral("Genaue Menge"),
+            QStringLiteral("Filter löschen"),
+            QStringLiteral("Feld"),
+            QStringLiteral("Algorithmus"),
+            QStringLiteral("Preis"),
+            QStringLiteral("Menge"),
+            QStringLiteral("Quick Sort"),
+            QStringLiteral("Bogo Sort"),
+            QStringLiteral("Sortieren"),
+            QStringLiteral("Gesamtwert"),
+            QStringLiteral("Speichern"),
+            QStringLiteral("Neu laden"),
+            QStringLiteral("Design"),
+            QStringLiteral("Sprache"),
+            QStringLiteral("Ausgewähltes Produkt"),
+            QStringLiteral("Wählen Sie ein Produkt aus der Tabelle."),
+            QStringLiteral("Bereit."),
+            QStringLiteral("Ungültige Daten."),
+            QStringLiteral("Produkt hinzugefügt."),
+            QStringLiteral("Menge aktualisiert."),
+            QStringLiteral("Produkt gelöscht."),
+            QStringLiteral("Produkte sortiert."),
+            QStringLiteral("Bogo Sort ist bei mehr als 8 Produkten blockiert."),
+            QStringLiteral("Daten gespeichert."),
+            QStringLiteral("Daten geladen."),
+            QStringLiteral("Keine Produkte mit diesen Filtern."),
+            QStringLiteral("Produkt löschen"),
+            QStringLiteral("Ausgewähltes Produkt löschen?")
+        },
+        {
+            QStringLiteral("Türkçe"),
+            QStringLiteral("Lapis Technologies"),
+            QStringLiteral("Ürünler"),
+            QStringLiteral("Ayarlar"),
+            QStringLiteral("Ürün ekle"),
+            QStringLiteral("Ürünü düzenle"),
+            QStringLiteral("Sırala"),
+            QStringLiteral("Dosya"),
+            QStringLiteral("Ürün adı"),
+            QStringLiteral("Fiyat"),
+            QStringLiteral("Adet"),
+            QStringLiteral("Ekle"),
+            QStringLiteral("Adedi güncelle"),
+            QStringLiteral("Ürünü sil"),
+            QStringLiteral("Ada göre ara"),
+            QStringLiteral("Tam adet"),
+            QStringLiteral("Filtreleri temizle"),
+            QStringLiteral("Sıralama alanı"),
+            QStringLiteral("Algoritma"),
+            QStringLiteral("Fiyat"),
+            QStringLiteral("Adet"),
+            QStringLiteral("Quick Sort"),
+            QStringLiteral("Bogo Sort"),
+            QStringLiteral("Sırala"),
+            QStringLiteral("Toplam değer"),
+            QStringLiteral("Kaydet"),
+            QStringLiteral("Yeniden yükle"),
+            QStringLiteral("Tema"),
+            QStringLiteral("Dil"),
+            QStringLiteral("Seçili ürün"),
+            QStringLiteral("Tablodan bir ürün seçin."),
+            QStringLiteral("Hazır."),
+            QStringLiteral("Geçersiz veri."),
+            QStringLiteral("Ürün eklendi."),
+            QStringLiteral("Adet güncellendi."),
+            QStringLiteral("Ürün silindi."),
+            QStringLiteral("Ürünler sıralandı."),
+            QStringLiteral("Bogo Sort 8 üründen fazlası için engellendi."),
+            QStringLiteral("Veriler kaydedildi."),
+            QStringLiteral("Veriler yüklendi."),
+            QStringLiteral("Bu filtrelerle ürün yok."),
+            QStringLiteral("Ürünü sil"),
+            QStringLiteral("Seçili ürün silinsin mi?")
+        },
+        {
+            QStringLiteral("Русский"),
+            QStringLiteral("Lapis Technologies"),
+            QStringLiteral("Товары"),
+            QStringLiteral("Настройки"),
+            QStringLiteral("Добавить товар"),
+            QStringLiteral("Изменить товар"),
+            QStringLiteral("Сортировка"),
+            QStringLiteral("Файл"),
+            QStringLiteral("Название товара"),
+            QStringLiteral("Цена"),
+            QStringLiteral("Количество"),
+            QStringLiteral("Добавить"),
+            QStringLiteral("Обновить количество"),
+            QStringLiteral("Удалить товар"),
+            QStringLiteral("Поиск по названию"),
+            QStringLiteral("Точное количество"),
+            QStringLiteral("Очистить фильтры"),
+            QStringLiteral("Поле"),
+            QStringLiteral("Алгоритм"),
+            QStringLiteral("Цена"),
+            QStringLiteral("Количество"),
+            QStringLiteral("Quick Sort"),
+            QStringLiteral("Bogo Sort"),
+            QStringLiteral("Сортировать"),
+            QStringLiteral("Общая стоимость"),
+            QStringLiteral("Сохранить"),
+            QStringLiteral("Перезагрузить"),
+            QStringLiteral("Тема"),
+            QStringLiteral("Язык"),
+            QStringLiteral("Выбранный товар"),
+            QStringLiteral("Выберите товар в таблице."),
+            QStringLiteral("Готово."),
+            QStringLiteral("Некорректные данные."),
+            QStringLiteral("Товар добавлен."),
+            QStringLiteral("Количество обновлено."),
+            QStringLiteral("Товар удален."),
+            QStringLiteral("Товары отсортированы."),
+            QStringLiteral("Bogo Sort заблокирован для более чем 8 товаров."),
+            QStringLiteral("Данные сохранены."),
+            QStringLiteral("Данные загружены."),
+            QStringLiteral("Нет товаров с этими фильтрами."),
+            QStringLiteral("Удалить товар"),
+            QStringLiteral("Удалить выбранный товар?")
+        },
+        {
+            QStringLiteral("עברית"),
+            QStringLiteral("Lapis Technologies"),
+            QStringLiteral("מוצרים"),
+            QStringLiteral("הגדרות"),
+            QStringLiteral("הוספת מוצר"),
+            QStringLiteral("עריכת מוצר"),
+            QStringLiteral("מיון"),
+            QStringLiteral("קובץ"),
+            QStringLiteral("שם מוצר"),
+            QStringLiteral("מחיר"),
+            QStringLiteral("כמות"),
+            QStringLiteral("הוסף"),
+            QStringLiteral("עדכן כמות"),
+            QStringLiteral("מחק מוצר"),
+            QStringLiteral("חיפוש לפי שם"),
+            QStringLiteral("כמות מדויקת"),
+            QStringLiteral("נקה מסננים"),
+            QStringLiteral("שדה מיון"),
+            QStringLiteral("אלגוריתם"),
+            QStringLiteral("מחיר"),
+            QStringLiteral("כמות"),
+            QStringLiteral("Quick Sort"),
+            QStringLiteral("Bogo Sort"),
+            QStringLiteral("מיין"),
+            QStringLiteral("ערך כולל"),
+            QStringLiteral("שמור"),
+            QStringLiteral("טען מחדש"),
+            QStringLiteral("ערכת נושא"),
+            QStringLiteral("שפה"),
+            QStringLiteral("מוצר נבחר"),
+            QStringLiteral("בחר מוצר מהטבלה."),
+            QStringLiteral("מוכן."),
+            QStringLiteral("נתונים לא תקינים."),
+            QStringLiteral("המוצר נוסף."),
+            QStringLiteral("הכמות עודכנה."),
+            QStringLiteral("המוצר נמחק."),
+            QStringLiteral("המוצרים מוינו."),
+            QStringLiteral("Bogo Sort חסום עבור יותר מ-8 מוצרים."),
+            QStringLiteral("הנתונים נשמרו."),
+            QStringLiteral("הנתונים נטענו."),
+            QStringLiteral("אין מוצרים עם המסננים האלה."),
+            QStringLiteral("מחק מוצר"),
+            QStringLiteral("למחוק את המוצר שנבחר?")
+        }
     };
-    D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_11_0;
-
-    const HRESULT result = D3D11CreateDeviceAndSwapChain(
-        nullptr,
-        D3D_DRIVER_TYPE_HARDWARE,
-        nullptr,
-        0,
-        featureLevelArray,
-        2,
-        D3D11_SDK_VERSION,
-        &swapChainDescription,
-        &swapChain,
-        &d3dDevice,
-        &featureLevel,
-        &d3dDeviceContext
-    );
-
-    return result == S_OK;
 }
 
-static void createRenderTarget()
+static QVector<themeDefinition> createThemes()
 {
-    ID3D11Texture2D* backBuffer = nullptr;
-    swapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer));
-    d3dDevice->CreateRenderTargetView(backBuffer, nullptr, &mainRenderTargetView);
-    backBuffer->Release();
-}
-
-static void cleanupRenderTarget()
-{
-    if (mainRenderTargetView != nullptr)
-    {
-        mainRenderTargetView->Release();
-        mainRenderTargetView = nullptr;
-    }
-}
-
-static void cleanupDeviceD3D()
-{
-    cleanupRenderTarget();
-
-    if (swapChain != nullptr)
-    {
-        swapChain->Release();
-        swapChain = nullptr;
-    }
-
-    if (d3dDeviceContext != nullptr)
-    {
-        d3dDeviceContext->Release();
-        d3dDeviceContext = nullptr;
-    }
-
-    if (d3dDevice != nullptr)
-    {
-        d3dDevice->Release();
-        d3dDevice = nullptr;
-    }
-}
-
-static LRESULT WINAPI windowProcedure(
-    HWND window,
-    UINT message,
-    WPARAM wordParam,
-    LPARAM longParam
-)
-{
-    if (ImGui_ImplWin32_WndProcHandler(window, message, wordParam, longParam))
-    {
-        return true;
-    }
-
-    switch (message)
-    {
-    case WM_SIZE:
-        if (wordParam != SIZE_MINIMIZED && d3dDevice != nullptr)
+    return {
         {
-            cleanupRenderTarget();
-            swapChain->ResizeBuffers(
-                0,
-                LOWORD(longParam),
-                HIWORD(longParam),
-                DXGI_FORMAT_UNKNOWN,
-                0
+            QStringLiteral("Slate"),
+            QStringLiteral("#f5f7fb"),
+            QStringLiteral("#ffffff"),
+            QStringLiteral("#eef4f9"),
+            QStringLiteral("#d7e2ea"),
+            QStringLiteral("#1e1b18"),
+            QStringLiteral("#5e6874"),
+            QStringLiteral("#2f6f9f"),
+            QStringLiteral("#e4f0f8"),
+            QStringLiteral("#f8fbfd"),
+            QStringLiteral("#eaf3f8"),
+            QStringLiteral("#c44a66"),
+            QStringLiteral("#e8f1f7")
+        },
+        {
+            QStringLiteral("Cloud"),
+            QStringLiteral("#fffaff"),
+            QStringLiteral("#ffffff"),
+            QStringLiteral("#f2f5f8"),
+            QStringLiteral("#dde5ec"),
+            QStringLiteral("#1e1b18"),
+            QStringLiteral("#68727d"),
+            QStringLiteral("#3e92cc"),
+            QStringLiteral("#e9f4fb"),
+            QStringLiteral("#ffffff"),
+            QStringLiteral("#edf6fc"),
+            QStringLiteral("#d8315b"),
+            QStringLiteral("#edf3f8")
+        },
+        {
+            QStringLiteral("Harbor"),
+            QStringLiteral("#eef6fb"),
+            QStringLiteral("#fbfdff"),
+            QStringLiteral("#e1eef6"),
+            QStringLiteral("#c9dce9"),
+            QStringLiteral("#182236"),
+            QStringLiteral("#586778"),
+            QStringLiteral("#0a5f92"),
+            QStringLiteral("#dbeef8"),
+            QStringLiteral("#f7fbfe"),
+            QStringLiteral("#e0eff7"),
+            QStringLiteral("#be3d5d"),
+            QStringLiteral("#d9eaf4")
+        },
+        {
+            QStringLiteral("Cherry"),
+            QStringLiteral("#f7f2f5"),
+            QStringLiteral("#ffffff"),
+            QStringLiteral("#f3e8ed"),
+            QStringLiteral("#e5d3db"),
+            QStringLiteral("#241d20"),
+            QStringLiteral("#6e6067"),
+            QStringLiteral("#b93657"),
+            QStringLiteral("#f7dfe7"),
+            QStringLiteral("#fffafb"),
+            QStringLiteral("#f7e6ec"),
+            QStringLiteral("#d8315b"),
+            QStringLiteral("#f2dce4")
+        },
+        {
+            QStringLiteral("Midnight"),
+            QStringLiteral("#171b22"),
+            QStringLiteral("#202731"),
+            QStringLiteral("#27313d"),
+            QStringLiteral("#3a4858"),
+            QStringLiteral("#f4f0f4"),
+            QStringLiteral("#b4bdc8"),
+            QStringLiteral("#6faed4"),
+            QStringLiteral("#24384a"),
+            QStringLiteral("#27313d"),
+            QStringLiteral("#314053"),
+            QStringLiteral("#d45a76"),
+            QStringLiteral("#2d3a49")
+        }
+    };
+}
+
+static QString createStyleSheet(const themeDefinition& theme)
+{
+    return QStringLiteral(
+        "QMainWindow, QWidget {"
+        "    background: %1;"
+        "    color: %5;"
+        "    font-family: 'Segoe UI';"
+        "    font-size: 10pt;"
+        "}"
+        "QFrame#topBar, QFrame#actionPanel, QFrame#detailsCard {"
+        "    background: %2;"
+        "    border: 1px solid %4;"
+        "    border-radius: 10px;"
+        "}"
+        "QFrame#logo {"
+        "    background: %7;"
+        "    border-radius: 10px;"
+        "}"
+        "QLabel#logoText {"
+        "    background: transparent;"
+        "    color: white;"
+        "    font-weight: 700;"
+        "    font-size: 15pt;"
+        "}"
+        "QLabel#appTitle {"
+        "    background: transparent;"
+        "    font-size: 18pt;"
+        "    font-weight: 700;"
+        "}"
+        "QLabel#muted, QLabel#statusLabel {"
+        "    background: transparent;"
+        "    color: %6;"
+        "}"
+        "QPushButton {"
+        "    background: %9;"
+        "    border: 1px solid %4;"
+        "    border-radius: 8px;"
+        "    padding: 8px 13px;"
+        "}"
+        "QPushButton:hover {"
+        "    background: %10;"
+        "}"
+        "QPushButton:pressed, QPushButton:checked {"
+        "    background: %8;"
+        "    border-color: %7;"
+        "}"
+        "QPushButton#primaryButton {"
+        "    background: %7;"
+        "    border-color: %7;"
+        "    color: white;"
+        "    font-weight: 600;"
+        "}"
+        "QPushButton#dangerButton {"
+        "    color: %11;"
+        "}"
+        "QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {"
+        "    background: %2;"
+        "    border: 1px solid %4;"
+        "    border-radius: 8px;"
+        "    padding: 7px 9px;"
+        "}"
+        "QTableWidget {"
+        "    background: %2;"
+        "    alternate-background-color: %3;"
+        "    border: 1px solid %4;"
+        "    border-radius: 10px;"
+        "    gridline-color: %4;"
+        "    selection-background-color: %8;"
+        "    selection-color: %5;"
+        "}"
+        "QHeaderView::section {"
+        "    background: %12;"
+        "    border: 0;"
+        "    border-right: 1px solid %4;"
+        "    border-bottom: 1px solid %4;"
+        "    padding: 9px 10px;"
+        "    font-weight: 650;"
+        "}"
+        "QTableCornerButton::section {"
+        "    background: %12;"
+        "    border: 0;"
+        "}"
+        "QGroupBox {"
+        "    border: 1px solid %4;"
+        "    border-radius: 10px;"
+        "    margin-top: 12px;"
+        "    padding: 16px 12px 12px 12px;"
+        "    background: %2;"
+        "}"
+        "QGroupBox::title {"
+        "    subcontrol-origin: margin;"
+        "    left: 10px;"
+        "    padding: 0 6px;"
+        "    color: %6;"
+        "}"
+    ).arg(
+        theme.window,
+        theme.surface,
+        theme.surfaceAlt,
+        theme.border,
+        theme.text,
+        theme.mutedText,
+        theme.accent,
+        theme.accentSoft,
+        theme.button,
+        theme.buttonHover,
+        theme.danger,
+        theme.tableHeader
+    );
+}
+
+static QString formatMoney(float value)
+{
+    return QString::number(value, 'f', 2);
+}
+
+static QString productDisplayName(const product& item)
+{
+    return QString::fromUtf8(item.name);
+}
+
+static void copyToProductName(product* item, const QString& name)
+{
+    const QByteArray bytes = name.trimmed().toUtf8();
+    std::strncpy(item->name, bytes.constData(), maxNameLength - 1);
+    item->name[maxNameLength - 1] = '\0';
+}
+
+/*
+ * Purpose: Renders and runs the complete Qt inventory interface.
+ * Parameters: inventoryFilePath - CSV path used by load and save actions.
+ * Return value: None.
+ */
+void renderUI(const char* inventoryFilePath)
+{
+    int argumentCount = 1;
+    char appName[] = "InventoryManager";
+    char* arguments[] = { appName, nullptr };
+
+    QApplication app(argumentCount, arguments);
+    app.setFont(QFont(QStringLiteral("Segoe UI"), 10));
+
+    QVector<languageText> texts = createTexts();
+    QVector<themeDefinition> themes = createThemes();
+
+    int currentLanguage = 0;
+    int currentTheme = 0;
+    int selectedIndex = -1;
+
+    QMainWindow window;
+    window.setMinimumSize(1120, 720);
+    window.resize(1280, 760);
+    window.setWindowTitle(QStringLiteral("Lapis Technologies"));
+
+    QWidget* rootWidget = new QWidget(&window);
+    QVBoxLayout* rootLayout = new QVBoxLayout(rootWidget);
+    rootLayout->setContentsMargins(18, 18, 18, 18);
+    rootLayout->setSpacing(14);
+
+    QFrame* topBar = new QFrame(rootWidget);
+    topBar->setObjectName(QStringLiteral("topBar"));
+    QGridLayout* topLayout = new QGridLayout(topBar);
+    topLayout->setContentsMargins(16, 14, 16, 14);
+    topLayout->setHorizontalSpacing(14);
+
+    QFrame* logoFrame = new QFrame(topBar);
+    logoFrame->setObjectName(QStringLiteral("logo"));
+    logoFrame->setFixedSize(48, 48);
+    QVBoxLayout* logoLayout = new QVBoxLayout(logoFrame);
+    logoLayout->setContentsMargins(0, 0, 0, 0);
+    QLabel* logoLabel = new QLabel(QStringLiteral("LT"), logoFrame);
+    logoLabel->setObjectName(QStringLiteral("logoText"));
+    logoLabel->setAlignment(Qt::AlignCenter);
+    logoLayout->addWidget(logoLabel);
+
+    QLabel* titleLabel = new QLabel(QStringLiteral("Lapis Technologies"), topBar);
+    titleLabel->setObjectName(QStringLiteral("appTitle"));
+    QLabel* subtitleLabel = new QLabel(topBar);
+    subtitleLabel->setObjectName(QStringLiteral("muted"));
+
+    QPushButton* settingsButton = new QPushButton(topBar);
+    settingsButton->setCheckable(true);
+    QPushButton* addButton = new QPushButton(topBar);
+    addButton->setCheckable(true);
+    QPushButton* editButton = new QPushButton(topBar);
+    editButton->setCheckable(true);
+    QPushButton* sortButton = new QPushButton(topBar);
+    sortButton->setCheckable(true);
+    QPushButton* fileButton = new QPushButton(topBar);
+    fileButton->setCheckable(true);
+
+    topLayout->addWidget(logoFrame, 0, 0, 2, 1);
+    topLayout->addWidget(titleLabel, 0, 1);
+    topLayout->addWidget(subtitleLabel, 1, 1);
+    topLayout->addWidget(settingsButton, 0, 2, 2, 1);
+    topLayout->addWidget(addButton, 0, 3, 2, 1);
+    topLayout->addWidget(editButton, 0, 4, 2, 1);
+    topLayout->addWidget(sortButton, 0, 5, 2, 1);
+    topLayout->addWidget(fileButton, 0, 6, 2, 1);
+    topLayout->setColumnStretch(1, 1);
+
+    QFrame* actionPanel = new QFrame(rootWidget);
+    actionPanel->setObjectName(QStringLiteral("actionPanel"));
+    QVBoxLayout* actionPanelLayout = new QVBoxLayout(actionPanel);
+    actionPanelLayout->setContentsMargins(16, 14, 16, 14);
+
+    QStackedWidget* actionStack = new QStackedWidget(actionPanel);
+    actionPanelLayout->addWidget(actionStack);
+    actionPanel->hide();
+
+    QWidget* settingsPage = new QWidget(actionStack);
+    QGridLayout* settingsLayout = new QGridLayout(settingsPage);
+    QComboBox* themeComboBox = new QComboBox(settingsPage);
+    QComboBox* languageComboBox = new QComboBox(settingsPage);
+    QLabel* themeLabel = new QLabel(settingsPage);
+    QLabel* languageLabel = new QLabel(settingsPage);
+    settingsLayout->addWidget(themeLabel, 0, 0);
+    settingsLayout->addWidget(themeComboBox, 0, 1);
+    settingsLayout->addWidget(languageLabel, 0, 2);
+    settingsLayout->addWidget(languageComboBox, 0, 3);
+    settingsLayout->setColumnStretch(4, 1);
+
+    QWidget* addPage = new QWidget(actionStack);
+    QGridLayout* addLayout = new QGridLayout(addPage);
+    QLineEdit* addNameEdit = new QLineEdit(addPage);
+    QDoubleSpinBox* addPriceSpinBox = new QDoubleSpinBox(addPage);
+    QSpinBox* addQuantitySpinBox = new QSpinBox(addPage);
+    QPushButton* addSubmitButton = new QPushButton(addPage);
+    addSubmitButton->setObjectName(QStringLiteral("primaryButton"));
+    addPriceSpinBox->setRange(0.01, 1000000.0);
+    addPriceSpinBox->setDecimals(2);
+    addPriceSpinBox->setValue(1.0);
+    addQuantitySpinBox->setRange(0, 1000000);
+    addQuantitySpinBox->setValue(1);
+    addLayout->addWidget(addNameEdit, 0, 0);
+    addLayout->addWidget(addPriceSpinBox, 0, 1);
+    addLayout->addWidget(addQuantitySpinBox, 0, 2);
+    addLayout->addWidget(addSubmitButton, 0, 3);
+    addLayout->setColumnStretch(0, 1);
+
+    QWidget* editPage = new QWidget(actionStack);
+    QGridLayout* editLayout = new QGridLayout(editPage);
+    QLabel* editSelectedLabel = new QLabel(editPage);
+    QSpinBox* editQuantitySpinBox = new QSpinBox(editPage);
+    QPushButton* updateQuantityButton = new QPushButton(editPage);
+    updateQuantityButton->setObjectName(QStringLiteral("primaryButton"));
+    QPushButton* deleteProductButton = new QPushButton(editPage);
+    deleteProductButton->setObjectName(QStringLiteral("dangerButton"));
+    editQuantitySpinBox->setRange(0, 1000000);
+    editLayout->addWidget(editSelectedLabel, 0, 0);
+    editLayout->addWidget(editQuantitySpinBox, 0, 1);
+    editLayout->addWidget(updateQuantityButton, 0, 2);
+    editLayout->addWidget(deleteProductButton, 0, 3);
+    editLayout->setColumnStretch(0, 1);
+
+    QWidget* sortPage = new QWidget(actionStack);
+    QGridLayout* sortLayout = new QGridLayout(sortPage);
+    QLabel* sortFieldLabel = new QLabel(sortPage);
+    QLabel* sortAlgorithmLabel = new QLabel(sortPage);
+    QComboBox* sortFieldComboBox = new QComboBox(sortPage);
+    QComboBox* sortAlgorithmComboBox = new QComboBox(sortPage);
+    QPushButton* applySortButton = new QPushButton(sortPage);
+    applySortButton->setObjectName(QStringLiteral("primaryButton"));
+    sortLayout->addWidget(sortFieldLabel, 0, 0);
+    sortLayout->addWidget(sortFieldComboBox, 0, 1);
+    sortLayout->addWidget(sortAlgorithmLabel, 0, 2);
+    sortLayout->addWidget(sortAlgorithmComboBox, 0, 3);
+    sortLayout->addWidget(applySortButton, 0, 4);
+    sortLayout->setColumnStretch(5, 1);
+
+    QWidget* filePage = new QWidget(actionStack);
+    QGridLayout* fileLayout = new QGridLayout(filePage);
+    QLabel* totalValuePanelLabel = new QLabel(filePage);
+    QPushButton* saveButton = new QPushButton(filePage);
+    saveButton->setObjectName(QStringLiteral("primaryButton"));
+    QPushButton* reloadButton = new QPushButton(filePage);
+    fileLayout->addWidget(totalValuePanelLabel, 0, 0);
+    fileLayout->addWidget(saveButton, 0, 1);
+    fileLayout->addWidget(reloadButton, 0, 2);
+    fileLayout->setColumnStretch(3, 1);
+
+    actionStack->addWidget(settingsPage);
+    actionStack->addWidget(addPage);
+    actionStack->addWidget(editPage);
+    actionStack->addWidget(sortPage);
+    actionStack->addWidget(filePage);
+
+    QWidget* contentWidget = new QWidget(rootWidget);
+    QGridLayout* contentLayout = new QGridLayout(contentWidget);
+    contentLayout->setContentsMargins(0, 0, 0, 0);
+    contentLayout->setHorizontalSpacing(14);
+    contentLayout->setVerticalSpacing(12);
+
+    QLineEdit* searchNameEdit = new QLineEdit(contentWidget);
+    QSpinBox* quantityFilterSpinBox = new QSpinBox(contentWidget);
+    QPushButton* clearFiltersButton = new QPushButton(contentWidget);
+    quantityFilterSpinBox->setRange(-1, 1000000);
+    quantityFilterSpinBox->setSpecialValueText(QStringLiteral("Any"));
+    quantityFilterSpinBox->setValue(-1);
+
+    QLabel* productsHeadingLabel = new QLabel(contentWidget);
+    productsHeadingLabel->setObjectName(QStringLiteral("appTitle"));
+    QLabel* totalValueLabel = new QLabel(contentWidget);
+    totalValueLabel->setObjectName(QStringLiteral("muted"));
+
+    QTableWidget* productsTable = new QTableWidget(contentWidget);
+    productsTable->setColumnCount(4);
+    productsTable->setAlternatingRowColors(true);
+    productsTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    productsTable->setSelectionMode(QAbstractItemView::SingleSelection);
+    productsTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    productsTable->verticalHeader()->setVisible(false);
+    productsTable->horizontalHeader()->setStretchLastSection(false);
+    productsTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    productsTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+    productsTable->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+    productsTable->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
+
+    QFrame* detailsCard = new QFrame(contentWidget);
+    detailsCard->setObjectName(QStringLiteral("detailsCard"));
+    QVBoxLayout* detailsLayout = new QVBoxLayout(detailsCard);
+    detailsLayout->setContentsMargins(16, 16, 16, 16);
+    QLabel* selectedTitleLabel = new QLabel(detailsCard);
+    selectedTitleLabel->setObjectName(QStringLiteral("appTitle"));
+    QLabel* selectedNameLabel = new QLabel(detailsCard);
+    QLabel* selectedMetaLabel = new QLabel(detailsCard);
+    selectedMetaLabel->setObjectName(QStringLiteral("muted"));
+    QLabel* statusLabel = new QLabel(detailsCard);
+    statusLabel->setObjectName(QStringLiteral("statusLabel"));
+    statusLabel->setWordWrap(true);
+    detailsLayout->addWidget(selectedTitleLabel);
+    detailsLayout->addSpacing(8);
+    detailsLayout->addWidget(selectedNameLabel);
+    detailsLayout->addWidget(selectedMetaLabel);
+    detailsLayout->addStretch(1);
+    detailsLayout->addWidget(statusLabel);
+
+    contentLayout->addWidget(productsHeadingLabel, 0, 0);
+    contentLayout->addWidget(totalValueLabel, 0, 1);
+    contentLayout->addWidget(searchNameEdit, 1, 0);
+    contentLayout->addWidget(quantityFilterSpinBox, 1, 1);
+    contentLayout->addWidget(clearFiltersButton, 1, 2);
+    contentLayout->addWidget(productsTable, 2, 0, 1, 3);
+    contentLayout->addWidget(detailsCard, 0, 3, 3, 1);
+    contentLayout->setColumnStretch(0, 4);
+    contentLayout->setColumnStretch(3, 1);
+    contentLayout->setRowStretch(2, 1);
+
+    rootLayout->addWidget(topBar);
+    rootLayout->addWidget(actionPanel);
+    rootLayout->addWidget(contentWidget, 1);
+    window.setCentralWidget(rootWidget);
+
+    for (const themeDefinition& theme : themes)
+    {
+        themeComboBox->addItem(theme.name);
+    }
+
+    for (const languageText& text : texts)
+    {
+        languageComboBox->addItem(text.languageName);
+    }
+
+    auto setStatus = [&](const QString& message)
+    {
+        statusLabel->setText(message);
+        subtitleLabel->setText(
+            QStringLiteral("%1: %2  |  %3")
+                .arg(texts[currentLanguage].products)
+                .arg(getProductCountForDisplay())
+                .arg(message)
+        );
+    };
+
+    auto refreshSelection = [&]()
+    {
+        const languageText& text = texts[currentLanguage];
+        product selectedProduct = {};
+
+        if (selectedIndex >= 0 && getProductForDisplay(selectedIndex, &selectedProduct))
+        {
+            selectedNameLabel->setText(productDisplayName(selectedProduct));
+            selectedMetaLabel->setText(
+                QStringLiteral("%1: %2   %3: %4")
+                    .arg(text.price)
+                    .arg(formatMoney(selectedProduct.price))
+                    .arg(text.quantity)
+                    .arg(selectedProduct.quantity)
             );
-            createRenderTarget();
+            editSelectedLabel->setText(productDisplayName(selectedProduct));
+            editQuantitySpinBox->setValue(selectedProduct.quantity);
         }
-        return 0;
-    case WM_SYSCOMMAND:
-        if ((wordParam & 0xfff0) == SC_KEYMENU)
+        else
         {
-            return 0;
+            selectedIndex = -1;
+            selectedNameLabel->setText(text.noSelection);
+            selectedMetaLabel->clear();
+            editSelectedLabel->setText(text.noSelection);
+            editQuantitySpinBox->setValue(0);
         }
-        break;
-    case WM_DESTROY:
-        PostQuitMessage(0);
-        return 0;
-    default:
-        break;
-    }
+    };
 
-    return DefWindowProcW(window, message, wordParam, longParam);
-}
-
-static ImVec4 colorFromHex(int red, int green, int blue, float alpha = 1.0f)
-{
-    return ImVec4(red / 255.0f, green / 255.0f, blue / 255.0f, alpha);
-}
-
-static const themePalette themePalettes[themeCount] = {
+    auto refreshTotals = [&]()
     {
-        "Noir",
-        colorFromHex(0xf4, 0xf0, 0xf4),
-        colorFromHex(0xa9, 0xb1, 0xbd),
-        colorFromHex(0x19, 0x1d, 0x24),
-        colorFromHex(0x22, 0x28, 0x33),
-        colorFromHex(0x28, 0x30, 0x3d),
-        colorFromHex(0x71, 0x87, 0xa3, 0.18f),
-        colorFromHex(0x2c, 0x33, 0x40),
-        colorFromHex(0x31, 0x66, 0x8c),
-        colorFromHex(0x3e, 0x92, 0xcc, 0.82f),
-        colorFromHex(0xc8, 0x3b, 0x5d, 0.72f),
-        colorFromHex(0x27, 0x38, 0x4d),
-        colorFromHex(0x1d, 0x22, 0x2b),
-        colorFromHex(0x23, 0x2a, 0x35),
-        colorFromHex(0x3e, 0x92, 0xcc, 0.22f)
-    },
+        const languageText& text = texts[currentLanguage];
+        const QString totalText = QStringLiteral("%1: %2")
+            .arg(text.totalValue)
+            .arg(formatMoney(calculateInventoryTotalValue()));
+        totalValueLabel->setText(totalText);
+        totalValuePanelLabel->setText(totalText);
+        subtitleLabel->setText(
+            QStringLiteral("%1: %2  |  %3")
+                .arg(text.products)
+                .arg(getProductCountForDisplay())
+                .arg(statusLabel->text())
+        );
+    };
+
+    auto refreshTable = [&]()
     {
-        "Snow",
-        colorFromHex(0x1e, 0x1b, 0x18),
-        colorFromHex(0x68, 0x71, 0x7d),
-        colorFromHex(0xff, 0xfa, 0xff),
-        colorFromHex(0xf4, 0xf7, 0xfb),
-        colorFromHex(0xea, 0xf2, 0xf8),
-        colorFromHex(0x0a, 0x24, 0x63, 0.16f),
-        colorFromHex(0xff, 0xff, 0xff),
-        colorFromHex(0x6a, 0x9f, 0xc2),
-        colorFromHex(0x4d, 0x89, 0xb5),
-        colorFromHex(0xc9, 0x45, 0x65, 0.58f),
-        colorFromHex(0xd9, 0xe8, 0xf3),
-        colorFromHex(0xff, 0xff, 0xff),
-        colorFromHex(0xf1, 0xf6, 0xfa),
-        colorFromHex(0x3e, 0x92, 0xcc, 0.20f)
-    },
-    {
-        "Azure",
-        colorFromHex(0x1e, 0x1b, 0x18),
-        colorFromHex(0x58, 0x66, 0x72),
-        colorFromHex(0xf7, 0xfb, 0xff),
-        colorFromHex(0xe9, 0xf3, 0xfa),
-        colorFromHex(0xdc, 0xec, 0xf5),
-        colorFromHex(0x3e, 0x92, 0xcc, 0.24f),
-        colorFromHex(0xff, 0xff, 0xff),
-        colorFromHex(0x60, 0x96, 0xba),
-        colorFromHex(0x45, 0x82, 0xae),
-        colorFromHex(0xbd, 0x46, 0x62, 0.54f),
-        colorFromHex(0xc9, 0xe2, 0xf1),
-        colorFromHex(0xf9, 0xfc, 0xff),
-        colorFromHex(0xed, 0xf5, 0xfa),
-        colorFromHex(0x0a, 0x24, 0x63, 0.16f)
-    },
-    {
-        "Bloom",
-        colorFromHex(0xf7, 0xf1, 0xf5),
-        colorFromHex(0xc8, 0xbd, 0xc4),
-        colorFromHex(0x1e, 0x1b, 0x18),
-        colorFromHex(0x2b, 0x27, 0x25),
-        colorFromHex(0x34, 0x2e, 0x31),
-        colorFromHex(0xd8, 0x31, 0x5b, 0.22f),
-        colorFromHex(0x37, 0x32, 0x31),
-        colorFromHex(0x8a, 0x3f, 0x57),
-        colorFromHex(0xa9, 0x4e, 0x66),
-        colorFromHex(0xd8, 0x31, 0x5b, 0.72f),
-        colorFromHex(0x3b, 0x32, 0x39),
-        colorFromHex(0x26, 0x22, 0x20),
-        colorFromHex(0x2e, 0x28, 0x28),
-        colorFromHex(0xd8, 0x31, 0x5b, 0.24f)
-    }
-};
+        productsTable->setRowCount(0);
 
-static void applyAppTheme(int themeIndex)
-{
-    ImGuiStyle& style = ImGui::GetStyle();
-    style.WindowRounding = 8.0f;
-    style.ChildRounding = 8.0f;
-    style.FrameRounding = 6.0f;
-    style.PopupRounding = 8.0f;
-    style.ScrollbarRounding = 8.0f;
-    style.GrabRounding = 6.0f;
-    style.WindowBorderSize = 1.0f;
-    style.ChildBorderSize = 1.0f;
-    style.FrameBorderSize = 1.0f;
-    style.ItemSpacing = ImVec2(10.0f, 9.0f);
-    style.WindowPadding = ImVec2(18.0f, 16.0f);
-    style.FramePadding = ImVec2(11.0f, 7.0f);
-    style.CellPadding = ImVec2(12.0f, 9.0f);
+        const QString nameFilter = searchNameEdit->text().trimmed();
+        const int quantityFilter = quantityFilterSpinBox->value();
+        int visibleRow = 0;
 
-    const themePalette& palette = themePalettes[themeIndex];
-
-    ImVec4* colors = style.Colors;
-    colors[ImGuiCol_Text] = palette.text;
-    colors[ImGuiCol_TextDisabled] = palette.mutedText;
-    colors[ImGuiCol_WindowBg] = palette.window;
-    colors[ImGuiCol_ChildBg] = palette.panel;
-    colors[ImGuiCol_PopupBg] = palette.panel;
-    colors[ImGuiCol_Border] = palette.border;
-    colors[ImGuiCol_FrameBg] = palette.field;
-    colors[ImGuiCol_FrameBgHovered] = palette.panelAlt;
-    colors[ImGuiCol_FrameBgActive] = palette.selection;
-    colors[ImGuiCol_TitleBg] = palette.panel;
-    colors[ImGuiCol_TitleBgActive] = palette.panel;
-    colors[ImGuiCol_MenuBarBg] = palette.panel;
-    colors[ImGuiCol_Button] = palette.button;
-    colors[ImGuiCol_ButtonHovered] = palette.buttonHover;
-    colors[ImGuiCol_ButtonActive] = palette.accent;
-    colors[ImGuiCol_Header] = palette.selection;
-    colors[ImGuiCol_HeaderHovered] = palette.buttonHover;
-    colors[ImGuiCol_HeaderActive] = palette.accent;
-    colors[ImGuiCol_CheckMark] = palette.accent;
-    colors[ImGuiCol_SliderGrab] = palette.button;
-    colors[ImGuiCol_SliderGrabActive] = palette.accent;
-    colors[ImGuiCol_TableHeaderBg] = palette.tableHeader;
-    colors[ImGuiCol_TableRowBg] = palette.row;
-    colors[ImGuiCol_TableRowBgAlt] = palette.rowAlt;
-    colors[ImGuiCol_NavHighlight] = palette.selection;
-    colors[ImGuiCol_Separator] = palette.border;
-}
-
-static void loadInterfaceFont()
-{
-    ImGuiIO& io = ImGui::GetIO();
-    ImFontGlyphRangesBuilder builder;
-    builder.AddRanges(io.Fonts->GetGlyphRangesDefault());
-    builder.AddRanges(io.Fonts->GetGlyphRangesCyrillic());
-    builder.AddText(
-        u8"áéíóúñçàèùâêîôûäöüßğışİçŞĞÜÖ"
-        u8"БългарскиСистемауправлениенамагазинПродуктиКоличество"
-    );
-
-    builder.AddText(
-        u8"РусскийСистемаучетаскладаТоварыКоличество"
-        u8"עבריתמערכתמלאימוצריםכמותמחיר"
-    );
-
-    static ImVector<ImWchar> ranges;
-    builder.BuildRanges(&ranges);
-
-    ImFont* font = io.Fonts->AddFontFromFileTTF(
-        "C:\\Windows\\Fonts\\segoeui.ttf",
-        18.0f,
-        nullptr,
-        ranges.Data
-    );
-
-    if (font == nullptr)
-    {
-        io.Fonts->AddFontDefault();
-    }
-}
-
-static void copyText(char destination[maxNameLength], const char* source)
-{
-    std::strncpy(destination, source, maxNameLength - 1);
-    destination[maxNameLength - 1] = '\0';
-}
-
-static void renderProductsTable(
-    int* selectedIndex,
-    int* editQuantity,
-    const char* nameFilter,
-    int quantityFilter,
-    const uiText& t
-)
-{
-    const int productCount = getProductCountForDisplay();
-
-    if (productCount == 0)
-    {
-        ImGui::TextUnformatted(t.noProducts);
-        return;
-    }
-
-    if (ImGui::BeginTable(
-        "productsTable",
-        4,
-        ImGuiTableFlags_RowBg
-            | ImGuiTableFlags_BordersOuter
-            | ImGuiTableFlags_BordersInnerH
-            | ImGuiTableFlags_Resizable
-            | ImGuiTableFlags_Reorderable
-            | ImGuiTableFlags_ScrollY,
-        ImVec2(0.0f, 0.0f)
-    ))
-    {
-        ImGui::TableSetupColumn("#", ImGuiTableColumnFlags_WidthFixed, 44.0f);
-        ImGui::TableSetupColumn(t.productName);
-        ImGui::TableSetupColumn(t.price, ImGuiTableColumnFlags_WidthFixed, 90.0f);
-        ImGui::TableSetupColumn(t.quantity, ImGuiTableColumnFlags_WidthFixed, 100.0f);
-        ImGui::TableHeadersRow();
-
-        for (int i = 0; i < productCount; ++i)
+        for (int i = 0; i < getProductCountForDisplay(); ++i)
         {
             product item = {};
             getProductForDisplay(i, &item);
 
-            if (nameFilter[0] != '\0' && std::strstr(item.name, nameFilter) == nullptr)
+            const QString name = productDisplayName(item);
+            if (!nameFilter.isEmpty()
+                && !name.contains(nameFilter, Qt::CaseInsensitive))
             {
                 continue;
             }
@@ -575,446 +979,298 @@ static void renderProductsTable(
                 continue;
             }
 
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(0);
+            productsTable->insertRow(visibleRow);
 
-            const bool isSelected = *selectedIndex == i;
-            char label[32] = "";
-            std::snprintf(label, sizeof(label), "%d", i + 1);
+            QTableWidgetItem* numberItem =
+                new QTableWidgetItem(QString::number(i + 1));
+            numberItem->setData(Qt::UserRole, i);
 
-            if (ImGui::Selectable(
-                label,
-                isSelected,
-                ImGuiSelectableFlags_SpanAllColumns
-            ))
+            QTableWidgetItem* nameItem = new QTableWidgetItem(name);
+            QTableWidgetItem* priceItem =
+                new QTableWidgetItem(formatMoney(item.price));
+            QTableWidgetItem* quantityItem =
+                new QTableWidgetItem(QString::number(item.quantity));
+
+            numberItem->setTextAlignment(Qt::AlignCenter);
+            priceItem->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
+            quantityItem->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
+
+            productsTable->setItem(visibleRow, 0, numberItem);
+            productsTable->setItem(visibleRow, 1, nameItem);
+            productsTable->setItem(visibleRow, 2, priceItem);
+            productsTable->setItem(visibleRow, 3, quantityItem);
+
+            if (selectedIndex == i)
             {
-                *selectedIndex = i;
-                *editQuantity = item.quantity;
+                productsTable->selectRow(visibleRow);
             }
 
-            ImGui::TableSetColumnIndex(1);
-            ImGui::TextUnformatted(item.name);
-            ImGui::TableSetColumnIndex(2);
-            ImGui::Text("%.2f", item.price);
-            ImGui::TableSetColumnIndex(3);
-            ImGui::Text("%d", item.quantity);
+            ++visibleRow;
         }
 
-        ImGui::EndTable();
-    }
-}
-
-static void renderLocalizedCombo(
-    const char* label,
-    int* selectedIndex,
-    const char* firstItem,
-    const char* secondItem
-)
-{
-    const char* preview = *selectedIndex == 0 ? firstItem : secondItem;
-
-    if (ImGui::BeginCombo(label, preview))
-    {
-        if (ImGui::Selectable(firstItem, *selectedIndex == 0))
+        if (visibleRow == 0)
         {
-            *selectedIndex = 0;
+            productsTable->setRowCount(1);
+            QTableWidgetItem* emptyItem =
+                new QTableWidgetItem(texts[currentLanguage].noProducts);
+            emptyItem->setTextAlignment(Qt::AlignCenter);
+            productsTable->setItem(0, 1, emptyItem);
         }
 
-        if (ImGui::Selectable(secondItem, *selectedIndex == 1))
-        {
-            *selectedIndex = 1;
-        }
-
-        ImGui::EndCombo();
-    }
-}
-
-/*
- * Purpose: Renders and runs the complete Dear ImGui inventory interface.
- * Parameters: inventoryFilePath - CSV path used by load and save actions.
- * Return value: None.
- */
-void renderUI(const char* inventoryFilePath)
-{
-    WNDCLASSEXW windowClass = {
-        sizeof(WNDCLASSEXW),
-        CS_CLASSDC,
-        windowProcedure,
-        0L,
-        0L,
-        GetModuleHandle(nullptr),
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        L"InventoryManagerWindow",
-        nullptr
+        refreshTotals();
+        refreshSelection();
     };
 
-    RegisterClassExW(&windowClass);
-
-    HWND window = CreateWindowW(
-        windowClass.lpszClassName,
-        L"Lapis Technologies",
-        WS_OVERLAPPEDWINDOW,
-        100,
-        100,
-        1280,
-        760,
-        nullptr,
-        nullptr,
-        windowClass.hInstance,
-        nullptr
-    );
-
-    if (!createDeviceD3D(window))
+    auto applyLanguage = [&]()
     {
-        cleanupDeviceD3D();
-        UnregisterClassW(windowClass.lpszClassName, windowClass.hInstance);
-        return;
-    }
+        const languageText& text = texts[currentLanguage];
 
-    ShowWindow(window, SW_SHOWDEFAULT);
-    UpdateWindow(window);
+        window.setWindowTitle(text.windowTitle);
+        settingsButton->setText(text.settings);
+        addButton->setText(text.addProduct);
+        editButton->setText(text.editProduct);
+        sortButton->setText(text.sortProducts);
+        fileButton->setText(text.file);
 
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+        themeLabel->setText(text.theme);
+        languageLabel->setText(text.language);
+        addNameEdit->setPlaceholderText(text.productName);
+        addPriceSpinBox->setPrefix(text.price + QStringLiteral(": "));
+        addQuantitySpinBox->setPrefix(text.quantity + QStringLiteral(": "));
+        addSubmitButton->setText(text.add);
 
-    loadInterfaceFont();
-    int currentTheme = calmNightTheme;
-    applyAppTheme(currentTheme);
+        updateQuantityButton->setText(text.updateQuantity);
+        deleteProductButton->setText(text.deleteProduct);
+        editQuantitySpinBox->setPrefix(text.quantity + QStringLiteral(": "));
 
-    ImGui_ImplWin32_Init(window);
-    ImGui_ImplDX11_Init(d3dDevice, d3dDeviceContext);
+        sortFieldLabel->setText(text.sortField);
+        sortAlgorithmLabel->setText(text.sortAlgorithm);
+        sortFieldComboBox->clear();
+        sortFieldComboBox->addItems({ text.sortByPrice, text.sortByQuantity });
+        sortAlgorithmComboBox->clear();
+        sortAlgorithmComboBox->addItems({ text.quickSort, text.bogoSort });
+        applySortButton->setText(text.applySort);
 
-    bool done = false;
-    int currentLanguage = englishLanguage;
-    int activePanel = noPanel;
-    int selectedIndex = -1;
-    int sortFieldChoice = sortByPrice;
-    int sortAlgorithmChoice = quickSortAlgorithm;
-    int quantityFilter = -1;
-    char nameFilter[maxNameLength] = "";
-    char newName[maxNameLength] = "";
-    float newPrice = 1.0f;
-    int newQuantity = 1;
-    int editQuantity = 0;
-    char statusText[256] = "Ready.";
+        saveButton->setText(text.save);
+        reloadButton->setText(text.reload);
+        productsHeadingLabel->setText(text.products);
+        searchNameEdit->setPlaceholderText(text.searchName);
+        quantityFilterSpinBox->setPrefix(text.exactQuantity + QStringLiteral(": "));
+        clearFiltersButton->setText(text.clearFilters);
+        selectedTitleLabel->setText(text.selectedProduct);
 
-    while (!done)
+        productsTable->setHorizontalHeaderLabels(
+            { QStringLiteral("#"), text.productName, text.price, text.quantity }
+        );
+
+        if (statusLabel->text().isEmpty())
+        {
+            setStatus(text.ready);
+        }
+
+        refreshTable();
+    };
+
+    auto showPanel = [&](int panelIndex, QPushButton* activeButton)
     {
-        MSG message;
-        while (PeekMessage(&message, nullptr, 0U, 0U, PM_REMOVE))
-        {
-            TranslateMessage(&message);
-            DispatchMessage(&message);
+        const QList<QPushButton*> navButtons = {
+            settingsButton, addButton, editButton, sortButton, fileButton
+        };
 
-            if (message.message == WM_QUIT)
-            {
-                done = true;
-            }
+        const bool shouldHide =
+            actionPanel->isVisible() && actionStack->currentIndex() == panelIndex;
+
+        for (QPushButton* button : navButtons)
+        {
+            button->setChecked(false);
         }
 
-        if (done)
+        if (shouldHide)
         {
-            break;
+            actionPanel->hide();
+            return;
         }
 
-        ImGui_ImplDX11_NewFrame();
-        ImGui_ImplWin32_NewFrame();
-        ImGui::NewFrame();
+        actionStack->setCurrentIndex(panelIndex);
+        actionPanel->show();
+        activeButton->setChecked(true);
+    };
 
-        const uiText& t = texts[currentLanguage];
+    QObject::connect(settingsButton, &QPushButton::clicked, [&]()
+    {
+        showPanel(0, settingsButton);
+    });
 
-        ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(io.DisplaySize, ImGuiCond_Always);
-        ImGui::Begin(
-            "InventoryRoot",
-            nullptr,
-            ImGuiWindowFlags_NoDecoration
-                | ImGuiWindowFlags_NoMove
-                | ImGuiWindowFlags_NoResize
-        );
+    QObject::connect(addButton, &QPushButton::clicked, [&]()
+    {
+        showPanel(1, addButton);
+    });
 
-        ImGui::BeginChild(
-            "navbar",
-            ImVec2(0.0f, 82.0f),
-            true,
-            ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse
-        );
+    QObject::connect(editButton, &QPushButton::clicked, [&]()
+    {
+        showPanel(2, editButton);
+    });
 
-        const ImVec2 logoStart = ImGui::GetCursorScreenPos();
-        const ImVec2 logoEnd = ImVec2(logoStart.x + 46.0f, logoStart.y + 46.0f);
-        ImDrawList* drawList = ImGui::GetWindowDrawList();
-        drawList->AddRectFilled(
-            logoStart,
-            logoEnd,
-            ImGui::GetColorU32(themePalettes[currentTheme].button),
-            10.0f
-        );
-        drawList->AddRect(
-            logoStart,
-            logoEnd,
-            ImGui::GetColorU32(themePalettes[currentTheme].accent),
-            10.0f,
-            0,
-            2.0f
-        );
-        drawList->AddText(
-            ImVec2(logoStart.x + 12.0f, logoStart.y + 12.0f),
-            ImGui::GetColorU32(themePalettes[currentTheme].text),
-            "LT"
-        );
-        ImGui::Dummy(ImVec2(56.0f, 48.0f));
-        ImGui::SameLine();
-        ImGui::BeginGroup();
-        ImGui::Text("Lapis Technologies");
-        ImGui::TextDisabled("%s: %d  |  %s: %s", t.products, getProductCountForDisplay(), t.status, statusText);
-        ImGui::EndGroup();
+    QObject::connect(sortButton, &QPushButton::clicked, [&]()
+    {
+        showPanel(3, sortButton);
+    });
 
-        ImGui::SameLine();
-        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 22.0f);
+    QObject::connect(fileButton, &QPushButton::clicked, [&]()
+    {
+        showPanel(4, fileButton);
+    });
 
-        if (ImGui::Button(t.theme, ImVec2(118.0f, 0.0f)))
+    QObject::connect(themeComboBox, &QComboBox::currentIndexChanged, [&](int index)
+    {
+        if (index >= 0 && index < themes.size())
         {
-            activePanel = activePanel == settingsPanel ? noPanel : settingsPanel;
+            currentTheme = index;
+            app.setStyleSheet(createStyleSheet(themes[currentTheme]));
         }
-        ImGui::SameLine();
-        if (ImGui::Button(t.addProduct, ImVec2(144.0f, 0.0f)))
+    });
+
+    QObject::connect(languageComboBox, &QComboBox::currentIndexChanged, [&](int index)
+    {
+        if (index >= 0 && index < texts.size())
         {
-            activePanel = activePanel == addPanel ? noPanel : addPanel;
+            currentLanguage = index;
+            applyLanguage();
         }
-        ImGui::SameLine();
-        if (ImGui::Button(t.updateQuantity, ImVec2(166.0f, 0.0f)))
+    });
+
+    QObject::connect(searchNameEdit, &QLineEdit::textChanged, [&]()
+    {
+        refreshTable();
+    });
+
+    QObject::connect(quantityFilterSpinBox, &QSpinBox::valueChanged, [&]()
+    {
+        refreshTable();
+    });
+
+    QObject::connect(clearFiltersButton, &QPushButton::clicked, [&]()
+    {
+        searchNameEdit->clear();
+        quantityFilterSpinBox->setValue(-1);
+        refreshTable();
+    });
+
+    QObject::connect(productsTable, &QTableWidget::cellClicked, [&](int row, int)
+    {
+        QTableWidgetItem* indexItem = productsTable->item(row, 0);
+        if (indexItem == nullptr || !indexItem->data(Qt::UserRole).isValid())
         {
-            activePanel = activePanel == editPanel ? noPanel : editPanel;
-        }
-        ImGui::SameLine();
-        if (ImGui::Button(t.sortProducts, ImVec2(142.0f, 0.0f)))
-        {
-            activePanel = activePanel == sortPanel ? noPanel : sortPanel;
-        }
-        ImGui::SameLine();
-        if (ImGui::Button(t.save, ImVec2(104.0f, 0.0f)))
-        {
-            activePanel = activePanel == filePanel ? noPanel : filePanel;
-        }
-        ImGui::EndChild();
-
-        if (activePanel != noPanel)
-        {
-            ImGui::BeginChild(
-                "activePanel",
-                ImVec2(0.0f, 142.0f),
-                true,
-                ImGuiWindowFlags_NoScrollbar
-            );
-
-            if (activePanel == settingsPanel)
-            {
-                ImGui::SetNextItemWidth(260.0f);
-                if (ImGui::BeginCombo(t.theme, themePalettes[currentTheme].name))
-                {
-                    for (int i = 0; i < themeCount; ++i)
-                    {
-                        if (ImGui::Selectable(themePalettes[i].name, currentTheme == i))
-                        {
-                            currentTheme = i;
-                            applyAppTheme(currentTheme);
-                        }
-                    }
-                    ImGui::EndCombo();
-                }
-
-                ImGui::SameLine();
-                ImGui::SetNextItemWidth(260.0f);
-                if (ImGui::BeginCombo(t.languageLabel, texts[currentLanguage].languageName))
-                {
-                    for (int i = 0; i < languageCount; ++i)
-                    {
-                        if (ImGui::Selectable(texts[i].languageName, currentLanguage == i))
-                        {
-                            currentLanguage = i;
-                        }
-                    }
-
-                    ImGui::EndCombo();
-                }
-            }
-            else if (activePanel == addPanel)
-            {
-                ImGui::SetNextItemWidth(360.0f);
-                ImGui::InputText(t.productName, newName, sizeof(newName));
-                ImGui::SameLine();
-                ImGui::SetNextItemWidth(130.0f);
-                ImGui::InputFloat(t.price, &newPrice, 0.10f, 1.0f, "%.2f");
-                ImGui::SameLine();
-                ImGui::SetNextItemWidth(130.0f);
-                ImGui::InputInt(t.quantity, &newQuantity);
-                ImGui::SameLine();
-
-                if (ImGui::Button(t.add, ImVec2(130.0f, 0.0f)))
-                {
-                    if (addNewProduct(newName, newPrice, newQuantity))
-                    {
-                        copyText(statusText, t.productAdded);
-                        newName[0] = '\0';
-                        newPrice = 1.0f;
-                        newQuantity = 1;
-                    }
-                    else
-                    {
-                        copyText(statusText, t.invalidInput);
-                    }
-                }
-            }
-            else if (activePanel == editPanel)
-            {
-                if (selectedIndex >= 0)
-                {
-                    product selectedItem = {};
-                    getProductForDisplay(selectedIndex, &selectedItem);
-                    ImGui::TextUnformatted(selectedItem.name);
-                    ImGui::SameLine();
-                    ImGui::TextDisabled("%.2f", selectedItem.price);
-                    ImGui::SetNextItemWidth(150.0f);
-                    ImGui::InputInt(t.quantity, &editQuantity);
-                    ImGui::SameLine();
-
-                    if (ImGui::Button(t.updateQuantity, ImVec2(170.0f, 0.0f)))
-                    {
-                        if (updateProductQuantity(selectedIndex, editQuantity))
-                        {
-                            copyText(statusText, t.quantityUpdated);
-                        }
-                        else
-                        {
-                            copyText(statusText, t.invalidInput);
-                        }
-                    }
-
-                    ImGui::SameLine();
-
-                    if (ImGui::Button(t.deleteProduct, ImVec2(150.0f, 0.0f)))
-                    {
-                        if (deleteProductByIndex(selectedIndex))
-                        {
-                            selectedIndex = -1;
-                            copyText(statusText, t.productDeleted);
-                        }
-                    }
-                }
-                else
-                {
-                    ImGui::TextWrapped("%s", t.selectRow);
-                }
-            }
-            else if (activePanel == sortPanel)
-            {
-                ImGui::SetNextItemWidth(220.0f);
-                renderLocalizedCombo(t.sortField, &sortFieldChoice, t.sortByPrice, t.sortByQuantity);
-                ImGui::SameLine();
-                ImGui::SetNextItemWidth(220.0f);
-                renderLocalizedCombo(t.sortAlgorithm, &sortAlgorithmChoice, t.quickSort, t.bogoSort);
-                ImGui::SameLine();
-
-                if (ImGui::Button(t.applySort, ImVec2(150.0f, 0.0f)))
-                {
-                    const bool sorted = sortInventory(
-                        static_cast<sortField>(sortFieldChoice),
-                        static_cast<sortAlgorithm>(sortAlgorithmChoice)
-                    );
-
-                    copyText(statusText, sorted ? t.sorted : t.bogoBlocked);
-                    selectedIndex = -1;
-                }
-            }
-            else if (activePanel == filePanel)
-            {
-                ImGui::Text("%s: %.2f", t.totalValue, calculateInventoryTotalValue());
-                ImGui::SameLine();
-
-                if (ImGui::Button(t.save, ImVec2(150.0f, 0.0f)))
-                {
-                    copyText(
-                        statusText,
-                        saveInventoryToFile(inventoryFilePath) ? t.saved : t.invalidInput
-                    );
-                }
-
-                ImGui::SameLine();
-
-                if (ImGui::Button(t.reload, ImVec2(150.0f, 0.0f)))
-                {
-                    selectedIndex = -1;
-                    copyText(
-                        statusText,
-                        loadInventoryFromFile(inventoryFilePath) ? t.loaded : t.invalidInput
-                    );
-                }
-            }
-
-            ImGui::EndChild();
+            return;
         }
 
-        ImGui::BeginChild("contentPanel", ImVec2(0.0f, 0.0f), true);
-        ImGui::TextUnformatted(t.products);
-        ImGui::SameLine();
-        ImGui::TextDisabled("%s: %.2f", t.totalValue, calculateInventoryTotalValue());
-        ImGui::Separator();
+        selectedIndex = indexItem->data(Qt::UserRole).toInt();
+        refreshSelection();
+    });
 
-        ImGui::SetNextItemWidth(360.0f);
-        ImGui::InputText(t.searchName, nameFilter, sizeof(nameFilter));
-        ImGui::SameLine();
-        ImGui::SetNextItemWidth(210.0f);
-        ImGui::InputInt(t.exactQuantity, &quantityFilter);
-        ImGui::SameLine();
+    QObject::connect(addSubmitButton, &QPushButton::clicked, [&]()
+    {
+        product item = {};
+        copyToProductName(&item, addNameEdit->text());
+        item.price = static_cast<float>(addPriceSpinBox->value());
+        item.quantity = addQuantitySpinBox->value();
 
-        if (ImGui::Button(t.clearFilters))
+        if (addNewProduct(item.name, item.price, item.quantity))
         {
-            nameFilter[0] = '\0';
-            quantityFilter = -1;
-        }
-
-        if (selectedIndex >= 0)
-        {
-            product selectedItem = {};
-            getProductForDisplay(selectedIndex, &selectedItem);
-            ImGui::TextDisabled(
-                "%s: %s  |  %.2f  |  %d",
-                t.status,
-                selectedItem.name,
-                selectedItem.price,
-                selectedItem.quantity
-            );
+            addNameEdit->clear();
+            addPriceSpinBox->setValue(1.0);
+            addQuantitySpinBox->setValue(1);
+            setStatus(texts[currentLanguage].productAdded);
+            refreshTable();
         }
         else
         {
-            ImGui::TextDisabled("%s", t.selectRow);
+            setStatus(texts[currentLanguage].invalidInput);
+        }
+    });
+
+    QObject::connect(updateQuantityButton, &QPushButton::clicked, [&]()
+    {
+        if (selectedIndex < 0)
+        {
+            setStatus(texts[currentLanguage].noSelection);
+            return;
         }
 
-        renderProductsTable(&selectedIndex, &editQuantity, nameFilter, quantityFilter, t);
-        ImGui::EndChild();
+        if (updateProductQuantity(selectedIndex, editQuantitySpinBox->value()))
+        {
+            setStatus(texts[currentLanguage].quantityUpdated);
+            refreshTable();
+        }
+        else
+        {
+            setStatus(texts[currentLanguage].invalidInput);
+        }
+    });
 
-        ImGui::End();
+    QObject::connect(deleteProductButton, &QPushButton::clicked, [&]()
+    {
+        if (selectedIndex < 0)
+        {
+            setStatus(texts[currentLanguage].noSelection);
+            return;
+        }
 
-        ImGui::Render();
+        const QMessageBox::StandardButton answer = QMessageBox::question(
+            &window,
+            texts[currentLanguage].confirmDeleteTitle,
+            texts[currentLanguage].confirmDeleteText
+        );
 
-        const ImVec4 clear = themePalettes[currentTheme].window;
-        const float clearColor[4] = { clear.x, clear.y, clear.z, clear.w };
-        d3dDeviceContext->OMSetRenderTargets(1, &mainRenderTargetView, nullptr);
-        d3dDeviceContext->ClearRenderTargetView(mainRenderTargetView, clearColor);
-        ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-        swapChain->Present(1, 0);
-    }
+        if (answer == QMessageBox::Yes && deleteProductByIndex(selectedIndex))
+        {
+            selectedIndex = -1;
+            setStatus(texts[currentLanguage].productDeleted);
+            refreshTable();
+        }
+    });
 
-    ImGui_ImplDX11_Shutdown();
-    ImGui_ImplWin32_Shutdown();
-    ImGui::DestroyContext();
+    QObject::connect(applySortButton, &QPushButton::clicked, [&]()
+    {
+        const bool sorted = sortInventory(
+            sortFieldComboBox->currentIndex() == 0 ? sortByPrice : sortByQuantity,
+            sortAlgorithmComboBox->currentIndex() == 0
+                ? quickSortAlgorithm
+                : bogoSortAlgorithm
+        );
 
-    cleanupDeviceD3D();
-    DestroyWindow(window);
-    UnregisterClassW(windowClass.lpszClassName, windowClass.hInstance);
+        selectedIndex = -1;
+        setStatus(sorted ? texts[currentLanguage].sorted : texts[currentLanguage].bogoBlocked);
+        refreshTable();
+    });
+
+    QObject::connect(saveButton, &QPushButton::clicked, [&]()
+    {
+        setStatus(
+            saveInventoryToFile(inventoryFilePath)
+                ? texts[currentLanguage].saved
+                : texts[currentLanguage].invalidInput
+        );
+    });
+
+    QObject::connect(reloadButton, &QPushButton::clicked, [&]()
+    {
+        selectedIndex = -1;
+        setStatus(
+            loadInventoryFromFile(inventoryFilePath)
+                ? texts[currentLanguage].loaded
+                : texts[currentLanguage].invalidInput
+        );
+        refreshTable();
+    });
+
+    themeComboBox->setCurrentIndex(currentTheme);
+    languageComboBox->setCurrentIndex(currentLanguage);
+    app.setStyleSheet(createStyleSheet(themes[currentTheme]));
+    applyLanguage();
+    setStatus(texts[currentLanguage].ready);
+    refreshTable();
+
+    window.show();
+    app.exec();
 }
