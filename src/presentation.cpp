@@ -10,12 +10,16 @@
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QHeaderView>
+#include <QIntValidator>
+#include <QItemSelectionModel>
 #include <QLabel>
 #include <QLineEdit>
 #include <QList>
 #include <QMainWindow>
 #include <QMessageBox>
+#include <QModelIndex>
 #include <QPushButton>
+#include <QSignalBlocker>
 #include <QVector>
 #include <QSpinBox>
 #include <QStackedWidget>
@@ -24,6 +28,8 @@
 #include <QVBoxLayout>
 
 #include <cstring>
+#include <algorithm>
+#include <functional>
 
 struct languageText
 {
@@ -595,7 +601,42 @@ static QString createStyleSheet(const themeDefinition& theme)
         "    background: %2;"
         "    border: 1px solid %4;"
         "    border-radius: 8px;"
-        "    padding: 7px 9px;"
+        "    min-height: 22px;"
+        "    padding: 7px 10px;"
+        "}"
+        "QSpinBox, QDoubleSpinBox {"
+        "    padding-right: 34px;"
+        "}"
+        "QSpinBox::up-button, QDoubleSpinBox::up-button {"
+        "    subcontrol-origin: border;"
+        "    subcontrol-position: top right;"
+        "    width: 28px;"
+        "    border-left: 1px solid %4;"
+        "    border-bottom: 1px solid %4;"
+        "    border-top-right-radius: 8px;"
+        "    background: %3;"
+        "}"
+        "QSpinBox::down-button, QDoubleSpinBox::down-button {"
+        "    subcontrol-origin: border;"
+        "    subcontrol-position: bottom right;"
+        "    width: 28px;"
+        "    border-left: 1px solid %4;"
+        "    border-bottom-right-radius: 8px;"
+        "    background: %3;"
+        "}"
+        "QSpinBox::up-button:hover, QDoubleSpinBox::up-button:hover,"
+        "QSpinBox::down-button:hover, QDoubleSpinBox::down-button:hover {"
+        "    background: %10;"
+        "}"
+        "QSpinBox::up-arrow, QDoubleSpinBox::up-arrow {"
+        "    image: url(resources/icons/spin-up.svg);"
+        "    width: 12px;"
+        "    height: 12px;"
+        "}"
+        "QSpinBox::down-arrow, QDoubleSpinBox::down-arrow {"
+        "    image: url(resources/icons/spin-down.svg);"
+        "    width: 12px;"
+        "    height: 12px;"
         "}"
         "QTableWidget {"
         "    background: %2;"
@@ -684,6 +725,7 @@ void renderUI(const char* inventoryFilePath)
     int currentLanguage = 0;
     int currentTheme = 0;
     int selectedIndex = -1;
+    QVector<int> selectedIndexes;
 
     QMainWindow window;
     window.setMinimumSize(1120, 720);
@@ -768,8 +810,10 @@ void renderUI(const char* inventoryFilePath)
     addPriceSpinBox->setRange(0.01, 1000000.0);
     addPriceSpinBox->setDecimals(2);
     addPriceSpinBox->setValue(1.0);
+    addPriceSpinBox->setMinimumWidth(150);
     addQuantitySpinBox->setRange(0, 1000000);
     addQuantitySpinBox->setValue(1);
+    addQuantitySpinBox->setMinimumWidth(150);
     addLayout->addWidget(addNameEdit, 0, 0);
     addLayout->addWidget(addPriceSpinBox, 0, 1);
     addLayout->addWidget(addQuantitySpinBox, 0, 2);
@@ -785,6 +829,7 @@ void renderUI(const char* inventoryFilePath)
     QPushButton* deleteProductButton = new QPushButton(editPage);
     deleteProductButton->setObjectName(QStringLiteral("dangerButton"));
     editQuantitySpinBox->setRange(0, 1000000);
+    editQuantitySpinBox->setMinimumWidth(150);
     editLayout->addWidget(editSelectedLabel, 0, 0);
     editLayout->addWidget(editQuantitySpinBox, 0, 1);
     editLayout->addWidget(updateQuantityButton, 0, 2);
@@ -830,11 +875,9 @@ void renderUI(const char* inventoryFilePath)
     contentLayout->setVerticalSpacing(12);
 
     QLineEdit* searchNameEdit = new QLineEdit(contentWidget);
-    QSpinBox* quantityFilterSpinBox = new QSpinBox(contentWidget);
+    QLineEdit* quantityFilterEdit = new QLineEdit(contentWidget);
     QPushButton* clearFiltersButton = new QPushButton(contentWidget);
-    quantityFilterSpinBox->setRange(-1, 1000000);
-    quantityFilterSpinBox->setSpecialValueText(QStringLiteral("Any"));
-    quantityFilterSpinBox->setValue(-1);
+    quantityFilterEdit->setValidator(new QIntValidator(0, 1000000, quantityFilterEdit));
 
     QLabel* productsHeadingLabel = new QLabel(contentWidget);
     productsHeadingLabel->setObjectName(QStringLiteral("appTitle"));
@@ -845,7 +888,7 @@ void renderUI(const char* inventoryFilePath)
     productsTable->setColumnCount(4);
     productsTable->setAlternatingRowColors(true);
     productsTable->setSelectionBehavior(QAbstractItemView::SelectRows);
-    productsTable->setSelectionMode(QAbstractItemView::SingleSelection);
+    productsTable->setSelectionMode(QAbstractItemView::ExtendedSelection);
     productsTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     productsTable->verticalHeader()->setVisible(false);
     productsTable->horizontalHeader()->setStretchLastSection(false);
@@ -876,7 +919,7 @@ void renderUI(const char* inventoryFilePath)
     contentLayout->addWidget(productsHeadingLabel, 0, 0);
     contentLayout->addWidget(totalValueLabel, 0, 1);
     contentLayout->addWidget(searchNameEdit, 1, 0);
-    contentLayout->addWidget(quantityFilterSpinBox, 1, 1);
+    contentLayout->addWidget(quantityFilterEdit, 1, 1);
     contentLayout->addWidget(clearFiltersButton, 1, 2);
     contentLayout->addWidget(productsTable, 2, 0, 1, 3);
     contentLayout->addWidget(detailsCard, 0, 3, 3, 1);
@@ -913,20 +956,55 @@ void renderUI(const char* inventoryFilePath)
     auto refreshSelection = [&]()
     {
         const languageText& text = texts[currentLanguage];
-        product selectedProduct = {};
 
-        if (selectedIndex >= 0 && getProductForDisplay(selectedIndex, &selectedProduct))
+        if (selectedIndexes.size() > 1)
         {
-            selectedNameLabel->setText(productDisplayName(selectedProduct));
+            float selectedValue = 0.0f;
+            int selectedQuantity = 0;
+
+            for (int index : selectedIndexes)
+            {
+                product selectedProduct = {};
+                if (getProductForDisplay(index, &selectedProduct))
+                {
+                    selectedValue += selectedProduct.price * selectedProduct.quantity;
+                    selectedQuantity += selectedProduct.quantity;
+                }
+            }
+
+            selectedIndex = selectedIndexes.front();
+            selectedNameLabel->setText(
+                QStringLiteral("%1 %2").arg(selectedIndexes.size()).arg(text.products)
+            );
             selectedMetaLabel->setText(
                 QStringLiteral("%1: %2   %3: %4")
-                    .arg(text.price)
-                    .arg(formatMoney(selectedProduct.price))
+                    .arg(text.totalValue)
+                    .arg(formatMoney(selectedValue))
                     .arg(text.quantity)
-                    .arg(selectedProduct.quantity)
+                    .arg(selectedQuantity)
             );
-            editSelectedLabel->setText(productDisplayName(selectedProduct));
-            editQuantitySpinBox->setValue(selectedProduct.quantity);
+            editSelectedLabel->setText(
+                QStringLiteral("%1 %2").arg(selectedIndexes.size()).arg(text.products)
+            );
+        }
+        else if (selectedIndexes.size() == 1)
+        {
+            product selectedProduct = {};
+            selectedIndex = selectedIndexes.front();
+
+            if (getProductForDisplay(selectedIndex, &selectedProduct))
+            {
+                selectedNameLabel->setText(productDisplayName(selectedProduct));
+                selectedMetaLabel->setText(
+                    QStringLiteral("%1: %2   %3: %4")
+                        .arg(text.price)
+                        .arg(formatMoney(selectedProduct.price))
+                        .arg(text.quantity)
+                        .arg(selectedProduct.quantity)
+                );
+                editSelectedLabel->setText(productDisplayName(selectedProduct));
+                editQuantitySpinBox->setValue(selectedProduct.quantity);
+            }
         }
         else
         {
@@ -956,10 +1034,16 @@ void renderUI(const char* inventoryFilePath)
 
     auto refreshTable = [&]()
     {
+        const QSignalBlocker tableBlocker(productsTable);
+        const QSignalBlocker selectionBlocker(productsTable->selectionModel());
+
         productsTable->setRowCount(0);
+        productsTable->clearSelection();
 
         const QString nameFilter = searchNameEdit->text().trimmed();
-        const int quantityFilter = quantityFilterSpinBox->value();
+        bool hasQuantityFilter = false;
+        const int quantityFilter =
+            quantityFilterEdit->text().trimmed().toInt(&hasQuantityFilter);
         int visibleRow = 0;
 
         for (int i = 0; i < getProductCountForDisplay(); ++i)
@@ -974,7 +1058,7 @@ void renderUI(const char* inventoryFilePath)
                 continue;
             }
 
-            if (quantityFilter >= 0 && item.quantity != quantityFilter)
+            if (hasQuantityFilter && item.quantity != quantityFilter)
             {
                 continue;
             }
@@ -1000,9 +1084,12 @@ void renderUI(const char* inventoryFilePath)
             productsTable->setItem(visibleRow, 2, priceItem);
             productsTable->setItem(visibleRow, 3, quantityItem);
 
-            if (selectedIndex == i)
+            if (selectedIndexes.contains(i))
             {
-                productsTable->selectRow(visibleRow);
+                productsTable->selectionModel()->select(
+                    productsTable->model()->index(visibleRow, 0),
+                    QItemSelectionModel::Select | QItemSelectionModel::Rows
+                );
             }
 
             ++visibleRow;
@@ -1055,7 +1142,9 @@ void renderUI(const char* inventoryFilePath)
         reloadButton->setText(text.reload);
         productsHeadingLabel->setText(text.products);
         searchNameEdit->setPlaceholderText(text.searchName);
-        quantityFilterSpinBox->setPrefix(text.exactQuantity + QStringLiteral(": "));
+        quantityFilterEdit->setPlaceholderText(
+            text.exactQuantity + QStringLiteral(" (blank = all)")
+        );
         clearFiltersButton->setText(text.clearFilters);
         selectedTitleLabel->setText(text.selectedProduct);
 
@@ -1144,7 +1233,7 @@ void renderUI(const char* inventoryFilePath)
         refreshTable();
     });
 
-    QObject::connect(quantityFilterSpinBox, &QSpinBox::valueChanged, [&]()
+    QObject::connect(quantityFilterEdit, &QLineEdit::textChanged, [&]()
     {
         refreshTable();
     });
@@ -1152,19 +1241,31 @@ void renderUI(const char* inventoryFilePath)
     QObject::connect(clearFiltersButton, &QPushButton::clicked, [&]()
     {
         searchNameEdit->clear();
-        quantityFilterSpinBox->setValue(-1);
+        quantityFilterEdit->clear();
         refreshTable();
     });
 
-    QObject::connect(productsTable, &QTableWidget::cellClicked, [&](int row, int)
+    QObject::connect(
+        productsTable->selectionModel(),
+        &QItemSelectionModel::selectionChanged,
+        [&]()
     {
-        QTableWidgetItem* indexItem = productsTable->item(row, 0);
-        if (indexItem == nullptr || !indexItem->data(Qt::UserRole).isValid())
+        selectedIndexes.clear();
+
+        const QModelIndexList selectedRows =
+            productsTable->selectionModel()->selectedRows();
+
+        for (const QModelIndex& rowIndex : selectedRows)
         {
-            return;
+            QTableWidgetItem* indexItem = productsTable->item(rowIndex.row(), 0);
+            if (indexItem != nullptr && indexItem->data(Qt::UserRole).isValid())
+            {
+                selectedIndexes.push_back(indexItem->data(Qt::UserRole).toInt());
+            }
         }
 
-        selectedIndex = indexItem->data(Qt::UserRole).toInt();
+        std::sort(selectedIndexes.begin(), selectedIndexes.end());
+        selectedIndex = selectedIndexes.isEmpty() ? -1 : selectedIndexes.front();
         refreshSelection();
     });
 
@@ -1191,13 +1292,20 @@ void renderUI(const char* inventoryFilePath)
 
     QObject::connect(updateQuantityButton, &QPushButton::clicked, [&]()
     {
-        if (selectedIndex < 0)
+        if (selectedIndexes.isEmpty())
         {
             setStatus(texts[currentLanguage].noSelection);
             return;
         }
 
-        if (updateProductQuantity(selectedIndex, editQuantitySpinBox->value()))
+        bool updated = true;
+        for (int index : selectedIndexes)
+        {
+            updated = updateProductQuantity(index, editQuantitySpinBox->value())
+                && updated;
+        }
+
+        if (updated)
         {
             setStatus(texts[currentLanguage].quantityUpdated);
             refreshTable();
@@ -1210,7 +1318,7 @@ void renderUI(const char* inventoryFilePath)
 
     QObject::connect(deleteProductButton, &QPushButton::clicked, [&]()
     {
-        if (selectedIndex < 0)
+        if (selectedIndexes.isEmpty())
         {
             setStatus(texts[currentLanguage].noSelection);
             return;
@@ -1222,10 +1330,21 @@ void renderUI(const char* inventoryFilePath)
             texts[currentLanguage].confirmDeleteText
         );
 
-        if (answer == QMessageBox::Yes && deleteProductByIndex(selectedIndex))
+        if (answer == QMessageBox::Yes)
         {
+            std::sort(selectedIndexes.begin(), selectedIndexes.end(), std::greater<int>());
+
+            bool deleted = true;
+            for (int index : selectedIndexes)
+            {
+                deleted = deleteProductByIndex(index) && deleted;
+            }
+
             selectedIndex = -1;
-            setStatus(texts[currentLanguage].productDeleted);
+            selectedIndexes.clear();
+            setStatus(deleted
+                ? texts[currentLanguage].productDeleted
+                : texts[currentLanguage].invalidInput);
             refreshTable();
         }
     });
@@ -1240,6 +1359,7 @@ void renderUI(const char* inventoryFilePath)
         );
 
         selectedIndex = -1;
+        selectedIndexes.clear();
         setStatus(sorted ? texts[currentLanguage].sorted : texts[currentLanguage].bogoBlocked);
         refreshTable();
     });
@@ -1256,6 +1376,7 @@ void renderUI(const char* inventoryFilePath)
     QObject::connect(reloadButton, &QPushButton::clicked, [&]()
     {
         selectedIndex = -1;
+        selectedIndexes.clear();
         setStatus(
             loadInventoryFromFile(inventoryFilePath)
                 ? texts[currentLanguage].loaded
