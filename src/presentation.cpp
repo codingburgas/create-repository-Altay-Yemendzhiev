@@ -3,6 +3,7 @@
 #include "../include/logic.h"
 
 #include <QApplication>
+#include <QBrush>
 #include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QFrame>
@@ -10,7 +11,6 @@
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QHeaderView>
-#include <QIntValidator>
 #include <QItemSelectionModel>
 #include <QLabel>
 #include <QLineEdit>
@@ -18,7 +18,10 @@
 #include <QMainWindow>
 #include <QMessageBox>
 #include <QModelIndex>
+#include <QMouseEvent>
+#include <QPainter>
 #include <QPushButton>
+#include <QColor>
 #include <QSignalBlocker>
 #include <QVector>
 #include <QSpinBox>
@@ -556,6 +559,11 @@ static QString createStyleSheet(const themeDefinition& theme)
         "    border: 1px solid %4;"
         "    border-radius: 10px;"
         "}"
+        "QFrame#rangeFilter {"
+        "    background: %2;"
+        "    border: 1px solid %4;"
+        "    border-radius: 8px;"
+        "}"
         "QFrame#logo {"
         "    background: %7;"
         "    border-radius: 10px;"
@@ -574,6 +582,11 @@ static QString createStyleSheet(const themeDefinition& theme)
         "QLabel#muted, QLabel#statusLabel {"
         "    background: transparent;"
         "    color: %6;"
+        "}"
+        "QLabel#warningLabel {"
+        "    background: transparent;"
+        "    color: %11;"
+        "    font-weight: 650;"
         "}"
         "QPushButton {"
         "    background: %9;"
@@ -705,6 +718,205 @@ static void copyToProductName(product* item, const QString& name)
     item->name[maxNameLength - 1] = '\0';
 }
 
+class RangeSlider : public QWidget
+{
+public:
+    explicit RangeSlider(QWidget* parent = nullptr)
+        : QWidget(parent)
+    {
+        setMinimumHeight(28);
+        setMinimumWidth(150);
+        setMouseTracking(true);
+    }
+
+    int minimum() const
+    {
+        return minimumValue;
+    }
+
+    int maximum() const
+    {
+        return maximumValue;
+    }
+
+    int lowerValue() const
+    {
+        return lowerSelectedValue;
+    }
+
+    int upperValue() const
+    {
+        return upperSelectedValue;
+    }
+
+    void setRange(int minimum, int maximum)
+    {
+        minimumValue = minimum;
+        maximumValue = std::max(minimum, maximum);
+        lowerSelectedValue = clampValue(lowerSelectedValue);
+        upperSelectedValue = clampValue(upperSelectedValue);
+
+        if (lowerSelectedValue > upperSelectedValue)
+        {
+            lowerSelectedValue = upperSelectedValue;
+        }
+
+        update();
+    }
+
+    void setValues(int lower, int upper)
+    {
+        lowerSelectedValue = clampValue(lower);
+        upperSelectedValue = clampValue(upper);
+
+        if (lowerSelectedValue > upperSelectedValue)
+        {
+            std::swap(lowerSelectedValue, upperSelectedValue);
+        }
+
+        update();
+    }
+
+    void setOnRangeChanged(std::function<void()> callback)
+    {
+        onRangeChanged = callback;
+    }
+
+protected:
+    void paintEvent(QPaintEvent*) override
+    {
+        QPainter painter(this);
+        painter.setRenderHint(QPainter::Antialiasing, true);
+
+        const int trackLeft = handleRadius;
+        const int trackRight = width() - handleRadius;
+        const int trackY = height() / 2;
+        const int lowerX = valueToX(lowerSelectedValue);
+        const int upperX = valueToX(upperSelectedValue);
+
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(QColor(199, 209, 221));
+        painter.drawRoundedRect(
+            QRect(trackLeft, trackY - 2, trackRight - trackLeft, 4),
+            2,
+            2
+        );
+
+        painter.setBrush(QColor(32, 91, 130));
+        painter.drawRoundedRect(
+            QRect(lowerX, trackY - 3, std::max(1, upperX - lowerX), 6),
+            3,
+            3
+        );
+
+        paintHandle(painter, lowerX, trackY);
+        paintHandle(painter, upperX, trackY);
+    }
+
+    void mousePressEvent(QMouseEvent* event) override
+    {
+        const int lowerDistance = std::abs(event->position().x() - valueToX(lowerSelectedValue));
+        const int upperDistance = std::abs(event->position().x() - valueToX(upperSelectedValue));
+        activeHandle = lowerDistance <= upperDistance ? lowerHandle : upperHandle;
+        moveHandleTo(event->position().x());
+    }
+
+    void mouseMoveEvent(QMouseEvent* event) override
+    {
+        if (activeHandle != noHandle)
+        {
+            moveHandleTo(event->position().x());
+        }
+    }
+
+    void mouseReleaseEvent(QMouseEvent*) override
+    {
+        activeHandle = noHandle;
+    }
+
+private:
+    enum handleType
+    {
+        noHandle,
+        lowerHandle,
+        upperHandle
+    };
+
+    int clampValue(int value) const
+    {
+        return std::max(minimumValue, std::min(value, maximumValue));
+    }
+
+    int valueToX(int value) const
+    {
+        if (maximumValue == minimumValue)
+        {
+            return handleRadius;
+        }
+
+        const float ratio = static_cast<float>(value - minimumValue)
+            / static_cast<float>(maximumValue - minimumValue);
+        return handleRadius
+            + static_cast<int>(ratio * static_cast<float>(width() - (handleRadius * 2)));
+    }
+
+    int xToValue(float x) const
+    {
+        const int trackWidth = std::max(1, width() - (handleRadius * 2));
+        const float clampedX = std::max(
+            static_cast<float>(handleRadius),
+            std::min(x, static_cast<float>(width() - handleRadius))
+        );
+        const float ratio = (clampedX - static_cast<float>(handleRadius))
+            / static_cast<float>(trackWidth);
+        return minimumValue
+            + static_cast<int>(ratio * static_cast<float>(maximumValue - minimumValue) + 0.5f);
+    }
+
+    void moveHandleTo(float x)
+    {
+        const int nextValue = xToValue(x);
+        bool changed = false;
+
+        if (activeHandle == lowerHandle)
+        {
+            const int nextLower = std::min(nextValue, upperSelectedValue);
+            changed = nextLower != lowerSelectedValue;
+            lowerSelectedValue = nextLower;
+        }
+        else if (activeHandle == upperHandle)
+        {
+            const int nextUpper = std::max(nextValue, lowerSelectedValue);
+            changed = nextUpper != upperSelectedValue;
+            upperSelectedValue = nextUpper;
+        }
+
+        if (changed)
+        {
+            update();
+            if (onRangeChanged)
+            {
+                onRangeChanged();
+            }
+        }
+    }
+
+    void paintHandle(QPainter& painter, int x, int y)
+    {
+        painter.setBrush(QColor(255, 255, 255));
+        painter.setPen(QPen(QColor(32, 91, 130), 2));
+        painter.drawEllipse(QPoint(x, y), handleRadius, handleRadius);
+    }
+
+    int minimumValue = 0;
+    int maximumValue = 1;
+    int lowerSelectedValue = 0;
+    int upperSelectedValue = 1;
+    int activeHandle = noHandle;
+    const int handleRadius = 7;
+    std::function<void()> onRangeChanged;
+};
+
 /*
  * Purpose: Renders and runs the complete Qt inventory interface.
  * Parameters: inventoryFilePath - CSV path used by load and save actions.
@@ -725,6 +937,7 @@ void renderUI(const char* inventoryFilePath)
     int currentLanguage = 0;
     int currentTheme = 0;
     int selectedIndex = -1;
+    const int lowStockThreshold = 5;
     QVector<int> selectedIndexes;
 
     QMainWindow window;
@@ -875,9 +1088,36 @@ void renderUI(const char* inventoryFilePath)
     contentLayout->setVerticalSpacing(12);
 
     QLineEdit* searchNameEdit = new QLineEdit(contentWidget);
-    QLineEdit* quantityFilterEdit = new QLineEdit(contentWidget);
+    QFrame* priceRangeFrame = new QFrame(contentWidget);
+    priceRangeFrame->setObjectName(QStringLiteral("rangeFilter"));
+    QGridLayout* priceRangeLayout = new QGridLayout(priceRangeFrame);
+    priceRangeLayout->setContentsMargins(9, 6, 9, 6);
+    QLabel* priceSliderTitleLabel = new QLabel(priceRangeFrame);
+    QLabel* priceSliderValueLabel = new QLabel(priceRangeFrame);
+    RangeSlider* priceRangeSlider = new RangeSlider(priceRangeFrame);
+
+    QFrame* quantityRangeFrame = new QFrame(contentWidget);
+    quantityRangeFrame->setObjectName(QStringLiteral("rangeFilter"));
+    QGridLayout* quantityRangeLayout = new QGridLayout(quantityRangeFrame);
+    quantityRangeLayout->setContentsMargins(9, 6, 9, 6);
+    QLabel* quantitySliderTitleLabel = new QLabel(quantityRangeFrame);
+    QLabel* quantitySliderValueLabel = new QLabel(quantityRangeFrame);
+    RangeSlider* quantityRangeSlider = new RangeSlider(quantityRangeFrame);
     QPushButton* clearFiltersButton = new QPushButton(contentWidget);
-    quantityFilterEdit->setValidator(new QIntValidator(0, 1000000, quantityFilterEdit));
+    priceSliderValueLabel->setObjectName(QStringLiteral("muted"));
+    quantitySliderValueLabel->setObjectName(QStringLiteral("muted"));
+    priceRangeSlider->setRange(0, 1);
+    priceRangeSlider->setValues(0, 1);
+    quantityRangeSlider->setRange(0, 1);
+    quantityRangeSlider->setValues(0, 1);
+    priceRangeLayout->addWidget(priceSliderTitleLabel, 0, 0);
+    priceRangeLayout->addWidget(priceSliderValueLabel, 0, 1);
+    priceRangeLayout->addWidget(priceRangeSlider, 1, 0, 1, 2);
+    priceRangeLayout->setColumnStretch(1, 1);
+    quantityRangeLayout->addWidget(quantitySliderTitleLabel, 0, 0);
+    quantityRangeLayout->addWidget(quantitySliderValueLabel, 0, 1);
+    quantityRangeLayout->addWidget(quantityRangeSlider, 1, 0, 1, 2);
+    quantityRangeLayout->setColumnStretch(1, 1);
 
     QLabel* productsHeadingLabel = new QLabel(contentWidget);
     productsHeadingLabel->setObjectName(QStringLiteral("appTitle"));
@@ -906,6 +1146,11 @@ void renderUI(const char* inventoryFilePath)
     QLabel* selectedNameLabel = new QLabel(detailsCard);
     QLabel* selectedMetaLabel = new QLabel(detailsCard);
     selectedMetaLabel->setObjectName(QStringLiteral("muted"));
+    QLabel* selectedWarningLabel = new QLabel(detailsCard);
+    selectedWarningLabel->setObjectName(QStringLiteral("warningLabel"));
+    selectedWarningLabel->setWordWrap(true);
+    QPushButton* detailsDeleteButton = new QPushButton(detailsCard);
+    detailsDeleteButton->setObjectName(QStringLiteral("dangerButton"));
     QLabel* statusLabel = new QLabel(detailsCard);
     statusLabel->setObjectName(QStringLiteral("statusLabel"));
     statusLabel->setWordWrap(true);
@@ -913,18 +1158,24 @@ void renderUI(const char* inventoryFilePath)
     detailsLayout->addSpacing(8);
     detailsLayout->addWidget(selectedNameLabel);
     detailsLayout->addWidget(selectedMetaLabel);
+    detailsLayout->addWidget(selectedWarningLabel);
+    detailsLayout->addSpacing(8);
+    detailsLayout->addWidget(detailsDeleteButton);
     detailsLayout->addStretch(1);
     detailsLayout->addWidget(statusLabel);
 
     contentLayout->addWidget(productsHeadingLabel, 0, 0);
     contentLayout->addWidget(totalValueLabel, 0, 1);
     contentLayout->addWidget(searchNameEdit, 1, 0);
-    contentLayout->addWidget(quantityFilterEdit, 1, 1);
-    contentLayout->addWidget(clearFiltersButton, 1, 2);
-    contentLayout->addWidget(productsTable, 2, 0, 1, 3);
-    contentLayout->addWidget(detailsCard, 0, 3, 3, 1);
+    contentLayout->addWidget(priceRangeFrame, 1, 1);
+    contentLayout->addWidget(quantityRangeFrame, 1, 2);
+    contentLayout->addWidget(clearFiltersButton, 1, 3);
+    contentLayout->addWidget(productsTable, 2, 0, 1, 4);
+    contentLayout->addWidget(detailsCard, 0, 4, 3, 1);
     contentLayout->setColumnStretch(0, 4);
-    contentLayout->setColumnStretch(3, 1);
+    contentLayout->setColumnStretch(1, 1);
+    contentLayout->setColumnStretch(2, 1);
+    contentLayout->setColumnStretch(4, 1);
     contentLayout->setRowStretch(2, 1);
 
     rootLayout->addWidget(topBar);
@@ -956,6 +1207,7 @@ void renderUI(const char* inventoryFilePath)
     auto refreshSelection = [&]()
     {
         const languageText& text = texts[currentLanguage];
+        int lowStockSelectionCount = 0;
 
         if (selectedIndexes.size() > 1)
         {
@@ -969,6 +1221,10 @@ void renderUI(const char* inventoryFilePath)
                 {
                     selectedValue += selectedProduct.price * selectedProduct.quantity;
                     selectedQuantity += selectedProduct.quantity;
+                    if (selectedProduct.quantity <= lowStockThreshold)
+                    {
+                        ++lowStockSelectionCount;
+                    }
                 }
             }
 
@@ -986,6 +1242,14 @@ void renderUI(const char* inventoryFilePath)
             editSelectedLabel->setText(
                 QStringLiteral("%1 %2").arg(selectedIndexes.size()).arg(text.products)
             );
+            selectedWarningLabel->setText(lowStockSelectionCount > 0
+                ? QStringLiteral("Low stock warning: %1 selected product(s) have %2 or fewer units.")
+                    .arg(lowStockSelectionCount)
+                    .arg(lowStockThreshold)
+                : QString());
+            detailsDeleteButton->setEnabled(true);
+            deleteProductButton->setEnabled(true);
+            updateQuantityButton->setEnabled(true);
         }
         else if (selectedIndexes.size() == 1)
         {
@@ -1004,6 +1268,13 @@ void renderUI(const char* inventoryFilePath)
                 );
                 editSelectedLabel->setText(productDisplayName(selectedProduct));
                 editQuantitySpinBox->setValue(selectedProduct.quantity);
+                selectedWarningLabel->setText(selectedProduct.quantity <= lowStockThreshold
+                    ? QStringLiteral("Low stock warning: %1 units left.")
+                        .arg(selectedProduct.quantity)
+                    : QString());
+                detailsDeleteButton->setEnabled(true);
+                deleteProductButton->setEnabled(true);
+                updateQuantityButton->setEnabled(true);
             }
         }
         else
@@ -1011,17 +1282,129 @@ void renderUI(const char* inventoryFilePath)
             selectedIndex = -1;
             selectedNameLabel->setText(text.noSelection);
             selectedMetaLabel->clear();
+            selectedWarningLabel->clear();
             editSelectedLabel->setText(text.noSelection);
             editQuantitySpinBox->setValue(0);
+            detailsDeleteButton->setEnabled(false);
+            deleteProductButton->setEnabled(false);
+            updateQuantityButton->setEnabled(false);
         }
+    };
+
+    auto countLowStockProducts = [&]()
+    {
+        int lowStockCount = 0;
+
+        for (int i = 0; i < getProductCountForDisplay(); ++i)
+        {
+            product item = {};
+            if (getProductForDisplay(i, &item)
+                && item.quantity <= lowStockThreshold)
+            {
+                ++lowStockCount;
+            }
+        }
+
+        return lowStockCount;
+    };
+
+    auto priceCents = [](float price)
+    {
+        return static_cast<int>((price * 100.0f) + 0.5f);
+    };
+
+    auto formatPriceRangeValue = [](int cents)
+    {
+        return QString::number(static_cast<float>(cents) / 100.0f, 'f', 2);
+    };
+
+    auto updateSliderLabels = [&]()
+    {
+        const int minPrice = priceRangeSlider->lowerValue();
+        const int maxPrice = priceRangeSlider->upperValue();
+        const int minQuantity = quantityRangeSlider->lowerValue();
+        const int maxQuantity = quantityRangeSlider->upperValue();
+
+        priceSliderValueLabel->setText(
+            QStringLiteral("%1 - %2")
+                .arg(formatPriceRangeValue(minPrice))
+                .arg(formatPriceRangeValue(maxPrice))
+        );
+        quantitySliderValueLabel->setText(
+            QStringLiteral("%1 - %2")
+                .arg(minQuantity)
+                .arg(maxQuantity)
+        );
+    };
+
+    auto refreshSliderRanges = [&]()
+    {
+        int maxPrice = 0;
+        int maxQuantity = 0;
+
+        for (int i = 0; i < getProductCountForDisplay(); ++i)
+        {
+            product item = {};
+            if (getProductForDisplay(i, &item))
+            {
+                maxPrice = std::max(maxPrice, priceCents(item.price));
+                maxQuantity = std::max(maxQuantity, item.quantity);
+            }
+        }
+
+        maxPrice = std::max(maxPrice, 1);
+        maxQuantity = std::max(maxQuantity, 1);
+
+        const bool priceWasFullRange =
+            priceRangeSlider->lowerValue() == priceRangeSlider->minimum()
+            && priceRangeSlider->upperValue() == priceRangeSlider->maximum();
+        const bool quantityWasFullRange =
+            quantityRangeSlider->lowerValue() == quantityRangeSlider->minimum()
+            && quantityRangeSlider->upperValue() == quantityRangeSlider->maximum();
+
+        priceRangeSlider->setRange(0, maxPrice);
+        quantityRangeSlider->setRange(0, maxQuantity);
+
+        if (priceWasFullRange)
+        {
+            priceRangeSlider->setValues(0, maxPrice);
+        }
+        else
+        {
+            priceRangeSlider->setValues(
+                std::min(priceRangeSlider->lowerValue(), maxPrice),
+                std::min(priceRangeSlider->upperValue(), maxPrice)
+            );
+        }
+
+        if (quantityWasFullRange)
+        {
+            quantityRangeSlider->setValues(0, maxQuantity);
+        }
+        else
+        {
+            quantityRangeSlider->setValues(
+                std::min(quantityRangeSlider->lowerValue(), maxQuantity),
+                std::min(quantityRangeSlider->upperValue(), maxQuantity)
+            );
+        }
+
+        updateSliderLabels();
     };
 
     auto refreshTotals = [&]()
     {
         const languageText& text = texts[currentLanguage];
-        const QString totalText = QStringLiteral("%1: %2")
+        QString totalText = QStringLiteral("%1: %2")
             .arg(text.totalValue)
             .arg(formatMoney(calculateInventoryTotalValue()));
+        const int lowStockCount = countLowStockProducts();
+
+        if (lowStockCount > 0)
+        {
+            totalText += QStringLiteral("  |  Low stock: %1").arg(lowStockCount);
+        }
+
         totalValueLabel->setText(totalText);
         totalValuePanelLabel->setText(totalText);
         subtitleLabel->setText(
@@ -1034,6 +1417,8 @@ void renderUI(const char* inventoryFilePath)
 
     auto refreshTable = [&]()
     {
+        refreshSliderRanges();
+
         const QSignalBlocker tableBlocker(productsTable);
         const QSignalBlocker selectionBlocker(productsTable->selectionModel());
 
@@ -1041,15 +1426,17 @@ void renderUI(const char* inventoryFilePath)
         productsTable->clearSelection();
 
         const QString nameFilter = searchNameEdit->text().trimmed();
-        bool hasQuantityFilter = false;
-        const int quantityFilter =
-            quantityFilterEdit->text().trimmed().toInt(&hasQuantityFilter);
+        const int minPriceFilter = priceRangeSlider->lowerValue();
+        const int maxPriceFilter = priceRangeSlider->upperValue();
+        const int minQuantityFilter = quantityRangeSlider->lowerValue();
+        const int maxQuantityFilter = quantityRangeSlider->upperValue();
         int visibleRow = 0;
 
         for (int i = 0; i < getProductCountForDisplay(); ++i)
         {
             product item = {};
             getProductForDisplay(i, &item);
+            const int itemPrice = priceCents(item.price);
 
             const QString name = productDisplayName(item);
             if (!nameFilter.isEmpty()
@@ -1058,7 +1445,12 @@ void renderUI(const char* inventoryFilePath)
                 continue;
             }
 
-            if (hasQuantityFilter && item.quantity != quantityFilter)
+            if (itemPrice < minPriceFilter || itemPrice > maxPriceFilter)
+            {
+                continue;
+            }
+
+            if (item.quantity < minQuantityFilter || item.quantity > maxQuantityFilter)
             {
                 continue;
             }
@@ -1078,6 +1470,27 @@ void renderUI(const char* inventoryFilePath)
             numberItem->setTextAlignment(Qt::AlignCenter);
             priceItem->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
             quantityItem->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
+
+            if (item.quantity <= lowStockThreshold)
+            {
+                const QBrush lowStockBrush(QColor(255, 244, 214));
+                const QBrush lowStockTextBrush(QColor(58, 58, 58));
+                numberItem->setBackground(lowStockBrush);
+                nameItem->setBackground(lowStockBrush);
+                priceItem->setBackground(lowStockBrush);
+                quantityItem->setBackground(lowStockBrush);
+                numberItem->setForeground(lowStockTextBrush);
+                nameItem->setForeground(lowStockTextBrush);
+                priceItem->setForeground(lowStockTextBrush);
+                quantityItem->setForeground(lowStockTextBrush);
+                quantityItem->setText(
+                    QStringLiteral("%1  Low").arg(item.quantity)
+                );
+                quantityItem->setToolTip(
+                    QStringLiteral("Low stock warning: %1 or fewer units.")
+                        .arg(lowStockThreshold)
+                );
+            }
 
             productsTable->setItem(visibleRow, 0, numberItem);
             productsTable->setItem(visibleRow, 1, nameItem);
@@ -1128,6 +1541,7 @@ void renderUI(const char* inventoryFilePath)
 
         updateQuantityButton->setText(text.updateQuantity);
         deleteProductButton->setText(text.deleteProduct);
+        detailsDeleteButton->setText(text.deleteProduct);
         editQuantitySpinBox->setPrefix(text.quantity + QStringLiteral(": "));
 
         sortFieldLabel->setText(text.sortField);
@@ -1142,9 +1556,8 @@ void renderUI(const char* inventoryFilePath)
         reloadButton->setText(text.reload);
         productsHeadingLabel->setText(text.products);
         searchNameEdit->setPlaceholderText(text.searchName);
-        quantityFilterEdit->setPlaceholderText(
-            text.exactQuantity + QStringLiteral(" (blank = all)")
-        );
+        priceSliderTitleLabel->setText(text.price + QStringLiteral(" range"));
+        quantitySliderTitleLabel->setText(text.quantity + QStringLiteral(" range"));
         clearFiltersButton->setText(text.clearFilters);
         selectedTitleLabel->setText(text.selectedProduct);
 
@@ -1233,17 +1646,67 @@ void renderUI(const char* inventoryFilePath)
         refreshTable();
     });
 
-    QObject::connect(quantityFilterEdit, &QLineEdit::textChanged, [&]()
+    priceRangeSlider->setOnRangeChanged([&]()
     {
+        updateSliderLabels();
+        refreshTable();
+    });
+
+    quantityRangeSlider->setOnRangeChanged([&]()
+    {
+        updateSliderLabels();
         refreshTable();
     });
 
     QObject::connect(clearFiltersButton, &QPushButton::clicked, [&]()
     {
         searchNameEdit->clear();
-        quantityFilterEdit->clear();
+        priceRangeSlider->setValues(
+            priceRangeSlider->minimum(),
+            priceRangeSlider->maximum()
+        );
+        quantityRangeSlider->setValues(
+            quantityRangeSlider->minimum(),
+            quantityRangeSlider->maximum()
+        );
+        updateSliderLabels();
         refreshTable();
     });
+
+    auto deleteSelectedProducts = [&]()
+    {
+        if (selectedIndexes.isEmpty())
+        {
+            setStatus(texts[currentLanguage].noSelection);
+            return;
+        }
+
+        const QMessageBox::StandardButton answer = QMessageBox::question(
+            &window,
+            texts[currentLanguage].confirmDeleteTitle,
+            texts[currentLanguage].confirmDeleteText
+        );
+
+        if (answer != QMessageBox::Yes)
+        {
+            return;
+        }
+
+        std::sort(selectedIndexes.begin(), selectedIndexes.end(), std::greater<int>());
+
+        bool deleted = true;
+        for (int index : selectedIndexes)
+        {
+            deleted = deleteProductByIndex(index) && deleted;
+        }
+
+        selectedIndex = -1;
+        selectedIndexes.clear();
+        setStatus(deleted
+            ? texts[currentLanguage].productDeleted
+            : texts[currentLanguage].invalidInput);
+        refreshTable();
+    };
 
     QObject::connect(
         productsTable->selectionModel(),
@@ -1318,35 +1781,12 @@ void renderUI(const char* inventoryFilePath)
 
     QObject::connect(deleteProductButton, &QPushButton::clicked, [&]()
     {
-        if (selectedIndexes.isEmpty())
-        {
-            setStatus(texts[currentLanguage].noSelection);
-            return;
-        }
+        deleteSelectedProducts();
+    });
 
-        const QMessageBox::StandardButton answer = QMessageBox::question(
-            &window,
-            texts[currentLanguage].confirmDeleteTitle,
-            texts[currentLanguage].confirmDeleteText
-        );
-
-        if (answer == QMessageBox::Yes)
-        {
-            std::sort(selectedIndexes.begin(), selectedIndexes.end(), std::greater<int>());
-
-            bool deleted = true;
-            for (int index : selectedIndexes)
-            {
-                deleted = deleteProductByIndex(index) && deleted;
-            }
-
-            selectedIndex = -1;
-            selectedIndexes.clear();
-            setStatus(deleted
-                ? texts[currentLanguage].productDeleted
-                : texts[currentLanguage].invalidInput);
-            refreshTable();
-        }
+    QObject::connect(detailsDeleteButton, &QPushButton::clicked, [&]()
+    {
+        deleteSelectedProducts();
     });
 
     QObject::connect(applySortButton, &QPushButton::clicked, [&]()
