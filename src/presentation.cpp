@@ -943,6 +943,7 @@ void renderUI(const char* inventoryFilePath)
     int currentLanguage = 0;
     int currentTheme = 0;
     int selectedIndex = -1;
+    int pendingCompareIndex = -1;
     const int lowStockThreshold = 5;
     QVector<int> selectedIndexes;
     QVector<int> duplicateProductIndexes;
@@ -1164,6 +1165,7 @@ void renderUI(const char* inventoryFilePath)
     QLabel* selectedWarningLabel = new QLabel(detailsCard);
     selectedWarningLabel->setObjectName(QStringLiteral("warningLabel"));
     selectedWarningLabel->setWordWrap(true);
+    QPushButton* compareProductsButton = new QPushButton(detailsCard);
     QPushButton* detailsDeleteButton = new QPushButton(detailsCard);
     detailsDeleteButton->setObjectName(QStringLiteral("dangerButton"));
     QLabel* statusLabel = new QLabel(detailsCard);
@@ -1175,6 +1177,7 @@ void renderUI(const char* inventoryFilePath)
     detailsLayout->addWidget(selectedMetaLabel);
     detailsLayout->addWidget(selectedWarningLabel);
     detailsLayout->addSpacing(8);
+    detailsLayout->addWidget(compareProductsButton);
     detailsLayout->addWidget(detailsDeleteButton);
     detailsLayout->addStretch(1);
     detailsLayout->addWidget(statusLabel);
@@ -1262,6 +1265,7 @@ void renderUI(const char* inventoryFilePath)
                     .arg(lowStockSelectionCount)
                     .arg(lowStockThreshold)
                 : QString());
+            compareProductsButton->setEnabled(selectedIndexes.size() == 2);
             detailsDeleteButton->setEnabled(true);
             deleteProductButton->setEnabled(true);
             updateQuantityButton->setEnabled(true);
@@ -1287,6 +1291,7 @@ void renderUI(const char* inventoryFilePath)
                     ? QStringLiteral("Low stock warning: %1 units left.")
                         .arg(selectedProduct.quantity)
                     : QString());
+                compareProductsButton->setEnabled(true);
                 detailsDeleteButton->setEnabled(true);
                 deleteProductButton->setEnabled(true);
                 updateQuantityButton->setEnabled(true);
@@ -1300,6 +1305,7 @@ void renderUI(const char* inventoryFilePath)
             selectedWarningLabel->clear();
             editSelectedLabel->setText(text.noSelection);
             editQuantitySpinBox->setValue(0);
+            compareProductsButton->setEnabled(false);
             detailsDeleteButton->setEnabled(false);
             deleteProductButton->setEnabled(false);
             updateQuantityButton->setEnabled(false);
@@ -1724,6 +1730,108 @@ void renderUI(const char* inventoryFilePath)
         return message.arg(duplicateCount);
     };
 
+    auto compareProductsText = [&]()
+    {
+        switch (currentLanguage)
+        {
+        case 1:
+            return QStringLiteral("Сравни продукти");
+        case 2:
+            return QStringLiteral("Comparar productos");
+        case 3:
+            return QStringLiteral("Comparer les produits");
+        case 4:
+            return QStringLiteral("Produkte vergleichen");
+        case 5:
+            return QStringLiteral("Urunleri karsilastir");
+        case 6:
+            return QStringLiteral("Сравнить товары");
+        case 7:
+            return QStringLiteral("Compare products");
+        default:
+            return QStringLiteral("Compare products");
+        }
+    };
+
+    auto compareSelectionMessage = [&]()
+    {
+        switch (currentLanguage)
+        {
+        case 1:
+            return QStringLiteral("Изберете точно два продукта за сравнение.");
+        case 2:
+            return QStringLiteral("Selecciona exactamente dos productos para comparar.");
+        case 3:
+            return QStringLiteral("Selectionnez exactement deux produits a comparer.");
+        case 4:
+            return QStringLiteral("Wahlen Sie genau zwei Produkte zum Vergleichen aus.");
+        case 5:
+            return QStringLiteral("Karsilastirmak icin tam iki urun secin.");
+        case 6:
+            return QStringLiteral("Выберите ровно два товара для сравнения.");
+        case 7:
+            return QStringLiteral("Select exactly two products to compare.");
+        default:
+            return QStringLiteral("Select exactly two products to compare.");
+        }
+    };
+
+    auto showProductComparison = [&](int firstIndex, int secondIndex)
+    {
+        if (firstIndex == secondIndex)
+        {
+            setStatus(compareSelectionMessage());
+            return;
+        }
+
+        product firstProduct = {};
+        product secondProduct = {};
+
+        if (!getProductForDisplay(firstIndex, &firstProduct)
+            || !getProductForDisplay(secondIndex, &secondProduct))
+        {
+            setStatus(texts[currentLanguage].invalidInput);
+            return;
+        }
+
+        const languageText& text = texts[currentLanguage];
+        const float firstTotal =
+            firstProduct.price * static_cast<float>(firstProduct.quantity);
+        const float secondTotal =
+            secondProduct.price * static_cast<float>(secondProduct.quantity);
+
+        QString comparisonHtml = QStringLiteral(
+            "<table cellspacing='0' cellpadding='8'>"
+            "<tr><th></th><th>%1</th><th>%2</th></tr>"
+            "<tr><td><b>%3</b></td><td>%4</td><td>%5</td></tr>"
+            "<tr><td><b>%6</b></td><td>%7</td><td>%8</td></tr>"
+            "<tr><td><b>%9</b></td><td>%10</td><td>%11</td></tr>"
+            "<tr><td><b>%12</b></td><td>%13</td><td>%14</td></tr>"
+            "</table>"
+        )
+            .arg(QStringLiteral("Product 1"))
+            .arg(QStringLiteral("Product 2"))
+            .arg(text.productName)
+            .arg(productDisplayName(firstProduct).toHtmlEscaped())
+            .arg(productDisplayName(secondProduct).toHtmlEscaped())
+            .arg(text.price)
+            .arg(formatMoney(firstProduct.price))
+            .arg(formatMoney(secondProduct.price))
+            .arg(text.quantity)
+            .arg(firstProduct.quantity)
+            .arg(secondProduct.quantity)
+            .arg(text.totalValue)
+            .arg(formatMoney(firstTotal))
+            .arg(formatMoney(secondTotal));
+
+        QMessageBox comparisonBox(&window);
+        comparisonBox.setWindowTitle(compareProductsText());
+        comparisonBox.setTextFormat(Qt::RichText);
+        comparisonBox.setText(comparisonHtml);
+        comparisonBox.setStandardButtons(QMessageBox::Ok);
+        comparisonBox.exec();
+    };
+
     auto applyLanguage = [&]()
     {
         const languageText& text = texts[currentLanguage];
@@ -1746,6 +1854,7 @@ void renderUI(const char* inventoryFilePath)
 
         updateQuantityButton->setText(text.updateQuantity);
         deleteProductButton->setText(text.deleteProduct);
+        compareProductsButton->setText(compareProductsText());
         detailsDeleteButton->setText(text.deleteProduct);
         editQuantitySpinBox->setPrefix(text.quantity + QStringLiteral(": "));
 
@@ -1976,6 +2085,17 @@ void renderUI(const char* inventoryFilePath)
         std::sort(selectedIndexes.begin(), selectedIndexes.end());
         selectedIndex = selectedIndexes.isEmpty() ? -1 : selectedIndexes.front();
         refreshSelection();
+
+        if (pendingCompareIndex >= 0 && selectedIndexes.size() == 1)
+        {
+            const int nextCompareIndex = selectedIndexes.front();
+            if (nextCompareIndex != pendingCompareIndex)
+            {
+                const int firstCompareIndex = pendingCompareIndex;
+                pendingCompareIndex = -1;
+                showProductComparison(firstCompareIndex, nextCompareIndex);
+            }
+        }
     });
 
     QObject::connect(addSubmitButton, &QPushButton::clicked, [&]()
@@ -2039,6 +2159,26 @@ void renderUI(const char* inventoryFilePath)
     QObject::connect(detailsDeleteButton, &QPushButton::clicked, [&]()
     {
         deleteSelectedProducts();
+    });
+
+    QObject::connect(compareProductsButton, &QPushButton::clicked, [&]()
+    {
+        if (selectedIndexes.size() == 2)
+        {
+            pendingCompareIndex = -1;
+            showProductComparison(selectedIndexes[0], selectedIndexes[1]);
+            return;
+        }
+
+        if (selectedIndexes.size() == 1)
+        {
+            pendingCompareIndex = selectedIndexes.front();
+            setStatus(compareSelectionMessage());
+            return;
+        }
+
+        pendingCompareIndex = -1;
+        setStatus(compareSelectionMessage());
     });
 
     QObject::connect(applySortButton, &QPushButton::clicked, [&]()
