@@ -79,6 +79,9 @@ struct languageText
     QString noProducts;
     QString confirmDeleteTitle;
     QString confirmDeleteText;
+    QString duplicateProducts;
+    QString noDuplicateProducts;
+    QString duplicateProductsFound;
 };
 
 struct themeDefinition
@@ -144,7 +147,10 @@ static QVector<languageText> createTexts()
             QStringLiteral("Data loaded."),
             QStringLiteral("No products match the current filters."),
             QStringLiteral("Delete product"),
-            QStringLiteral("Delete the selected product?")
+            QStringLiteral("Delete the selected product?"),
+            QStringLiteral("Duplicate products"),
+            QStringLiteral("No duplicate products."),
+            QStringLiteral("Duplicate products: %1. The oldest product is kept.")
         },
         {
             QStringLiteral("Български"),
@@ -939,6 +945,9 @@ void renderUI(const char* inventoryFilePath)
     int selectedIndex = -1;
     const int lowStockThreshold = 5;
     QVector<int> selectedIndexes;
+    QVector<int> duplicateProductIndexes;
+    QVector<QVector<product>> undoStack;
+    QVector<QVector<product>> redoStack;
 
     QMainWindow window;
     window.setMinimumSize(1120, 720);
@@ -981,6 +990,8 @@ void renderUI(const char* inventoryFilePath)
     sortButton->setCheckable(true);
     QPushButton* fileButton = new QPushButton(topBar);
     fileButton->setCheckable(true);
+    QPushButton* undoButton = new QPushButton(topBar);
+    QPushButton* redoButton = new QPushButton(topBar);
 
     topLayout->addWidget(logoFrame, 0, 0, 2, 1);
     topLayout->addWidget(titleLabel, 0, 1);
@@ -990,6 +1001,8 @@ void renderUI(const char* inventoryFilePath)
     topLayout->addWidget(editButton, 0, 4, 2, 1);
     topLayout->addWidget(sortButton, 0, 5, 2, 1);
     topLayout->addWidget(fileButton, 0, 6, 2, 1);
+    topLayout->addWidget(undoButton, 0, 7, 2, 1);
+    topLayout->addWidget(redoButton, 0, 8, 2, 1);
     topLayout->setColumnStretch(1, 1);
 
     QFrame* actionPanel = new QFrame(rootWidget);
@@ -1070,10 +1083,12 @@ void renderUI(const char* inventoryFilePath)
     QPushButton* saveButton = new QPushButton(filePage);
     saveButton->setObjectName(QStringLiteral("primaryButton"));
     QPushButton* reloadButton = new QPushButton(filePage);
+    QPushButton* duplicateDetectorButton = new QPushButton(filePage);
     fileLayout->addWidget(totalValuePanelLabel, 0, 0);
     fileLayout->addWidget(saveButton, 0, 1);
     fileLayout->addWidget(reloadButton, 0, 2);
-    fileLayout->setColumnStretch(3, 1);
+    fileLayout->addWidget(duplicateDetectorButton, 0, 3);
+    fileLayout->setColumnStretch(4, 1);
 
     actionStack->addWidget(settingsPage);
     actionStack->addWidget(addPage);
@@ -1308,6 +1323,92 @@ void renderUI(const char* inventoryFilePath)
         return lowStockCount;
     };
 
+    auto captureInventory = [&]()
+    {
+        QVector<product> snapshot;
+
+        for (int i = 0; i < getProductCountForDisplay(); ++i)
+        {
+            product item = {};
+            if (getProductForDisplay(i, &item))
+            {
+                snapshot.push_back(item);
+            }
+        }
+
+        return snapshot;
+    };
+
+    auto restoreInventory = [&](const QVector<product>& snapshot)
+    {
+        while (getProductCountForDisplay() > 0)
+        {
+            deleteProductByIndex(0);
+        }
+
+        for (const product& item : snapshot)
+        {
+            addNewProduct(item.name, item.price, item.quantity);
+        }
+
+        selectedIndex = -1;
+        selectedIndexes.clear();
+    };
+
+    auto updateUndoRedoButtons = [&]()
+    {
+        undoButton->setEnabled(!undoStack.isEmpty());
+        redoButton->setEnabled(!redoStack.isEmpty());
+    };
+
+    auto rememberBeforeChange = [&](const QVector<product>& snapshot)
+    {
+        undoStack.push_back(snapshot);
+        redoStack.clear();
+        updateUndoRedoButtons();
+    };
+
+    auto findDuplicateProductIndexes = [&]()
+    {
+        QVector<int> duplicateIndexes;
+
+        for (int i = 0; i < getProductCountForDisplay(); ++i)
+        {
+            product first = {};
+            if (!getProductForDisplay(i, &first))
+            {
+                continue;
+            }
+
+            const QString firstName = productDisplayName(first).trimmed().toCaseFolded();
+            if (firstName.isEmpty())
+            {
+                continue;
+            }
+
+            for (int j = i + 1; j < getProductCountForDisplay(); ++j)
+            {
+                product second = {};
+                if (!getProductForDisplay(j, &second))
+                {
+                    continue;
+                }
+
+                const QString secondName = productDisplayName(second).trimmed().toCaseFolded();
+                if (firstName == secondName)
+                {
+                    if (!duplicateIndexes.contains(j))
+                    {
+                        duplicateIndexes.push_back(j);
+                    }
+                }
+            }
+        }
+
+        std::sort(duplicateIndexes.begin(), duplicateIndexes.end());
+        return duplicateIndexes;
+    };
+
     auto priceCents = [](float price)
     {
         return static_cast<int>((price * 100.0f) + 0.5f);
@@ -1492,6 +1593,21 @@ void renderUI(const char* inventoryFilePath)
                 );
             }
 
+            if (duplicateProductIndexes.contains(i))
+            {
+                const QBrush duplicateBrush(QColor(218, 232, 246));
+                const QBrush duplicateTextBrush(QColor(28, 65, 98));
+                numberItem->setBackground(duplicateBrush);
+                nameItem->setBackground(duplicateBrush);
+                priceItem->setBackground(duplicateBrush);
+                quantityItem->setBackground(duplicateBrush);
+                numberItem->setForeground(duplicateTextBrush);
+                nameItem->setForeground(duplicateTextBrush);
+                priceItem->setForeground(duplicateTextBrush);
+                quantityItem->setForeground(duplicateTextBrush);
+                nameItem->setToolTip(QStringLiteral("Duplicate product name detected."));
+            }
+
             productsTable->setItem(visibleRow, 0, numberItem);
             productsTable->setItem(visibleRow, 1, nameItem);
             productsTable->setItem(visibleRow, 2, priceItem);
@@ -1521,6 +1637,93 @@ void renderUI(const char* inventoryFilePath)
         refreshSelection();
     };
 
+    auto duplicateProductsText = [&]()
+    {
+        switch (currentLanguage)
+        {
+        case 1:
+            return QStringLiteral("Дублирани продукти");
+        case 2:
+            return QStringLiteral("Productos duplicados");
+        case 3:
+            return QStringLiteral("Produits en double");
+        case 4:
+            return QStringLiteral("Doppelte Produkte");
+        case 5:
+            return QStringLiteral("Yinelenen urunler");
+        case 6:
+            return QStringLiteral("Дублирующиеся товары");
+        case 7:
+            return QStringLiteral("מוצרים כפולים");
+        default:
+            return texts[currentLanguage].duplicateProducts.isEmpty()
+                ? QStringLiteral("Duplicate products")
+                : texts[currentLanguage].duplicateProducts;
+        }
+    };
+
+    auto noDuplicateProductsText = [&]()
+    {
+        switch (currentLanguage)
+        {
+        case 1:
+            return QStringLiteral("Няма дублирани продукти.");
+        case 2:
+            return QStringLiteral("No hay productos duplicados.");
+        case 3:
+            return QStringLiteral("Aucun produit en double.");
+        case 4:
+            return QStringLiteral("Keine doppelten Produkte.");
+        case 5:
+            return QStringLiteral("Yinelenen urun yok.");
+        case 6:
+            return QStringLiteral("Дублирующихся товаров нет.");
+        case 7:
+            return QStringLiteral("אין מוצרים כפולים.");
+        default:
+            return texts[currentLanguage].noDuplicateProducts.isEmpty()
+                ? QStringLiteral("No duplicate products.")
+                : texts[currentLanguage].noDuplicateProducts;
+        }
+    };
+
+    auto duplicateProductsFoundText = [&](int duplicateCount)
+    {
+        QString message;
+
+        switch (currentLanguage)
+        {
+        case 1:
+            message = QStringLiteral("Дублирани продукти: %1. Най-старият продукт е запазен.");
+            break;
+        case 2:
+            message = QStringLiteral("Productos duplicados: %1. Se conserva el producto mas antiguo.");
+            break;
+        case 3:
+            message = QStringLiteral("Produits en double : %1. Le produit le plus ancien est conserve.");
+            break;
+        case 4:
+            message = QStringLiteral("Doppelte Produkte: %1. Das alteste Produkt bleibt erhalten.");
+            break;
+        case 5:
+            message = QStringLiteral("Yinelenen urunler: %1. En eski urun korunur.");
+            break;
+        case 6:
+            message = QStringLiteral("Дублирующиеся товары: %1. Самый старый товар сохранен.");
+            break;
+        case 7:
+            message = QStringLiteral("מוצרים כפולים: %1. המוצר הישן ביותר נשמר.");
+            break;
+        default:
+            message = texts[currentLanguage].duplicateProductsFound.isEmpty()
+                ? QStringLiteral("Duplicate products: %1. The oldest product is kept.")
+                : texts[currentLanguage].duplicateProductsFound;
+            break;
+        }
+
+        return message.arg(duplicateCount);
+    };
+
     auto applyLanguage = [&]()
     {
         const languageText& text = texts[currentLanguage];
@@ -1531,6 +1734,8 @@ void renderUI(const char* inventoryFilePath)
         editButton->setText(text.editProduct);
         sortButton->setText(text.sortProducts);
         fileButton->setText(text.file);
+        undoButton->setText(QStringLiteral("Undo"));
+        redoButton->setText(QStringLiteral("Redo"));
 
         themeLabel->setText(text.theme);
         languageLabel->setText(text.language);
@@ -1554,6 +1759,7 @@ void renderUI(const char* inventoryFilePath)
 
         saveButton->setText(text.save);
         reloadButton->setText(text.reload);
+        duplicateDetectorButton->setText(duplicateProductsText());
         productsHeadingLabel->setText(text.products);
         searchNameEdit->setPlaceholderText(text.searchName);
         priceSliderTitleLabel->setText(text.price + QStringLiteral(" range"));
@@ -1621,6 +1827,40 @@ void renderUI(const char* inventoryFilePath)
     QObject::connect(fileButton, &QPushButton::clicked, [&]()
     {
         showPanel(4, fileButton);
+    });
+
+    QObject::connect(undoButton, &QPushButton::clicked, [&]()
+    {
+        if (undoStack.isEmpty())
+        {
+            return;
+        }
+
+        redoStack.push_back(captureInventory());
+        const QVector<product> previous = undoStack.back();
+        undoStack.pop_back();
+        restoreInventory(previous);
+        duplicateProductIndexes.clear();
+        updateUndoRedoButtons();
+        setStatus(QStringLiteral("Undo complete."));
+        refreshTable();
+    });
+
+    QObject::connect(redoButton, &QPushButton::clicked, [&]()
+    {
+        if (redoStack.isEmpty())
+        {
+            return;
+        }
+
+        undoStack.push_back(captureInventory());
+        const QVector<product> next = redoStack.back();
+        redoStack.pop_back();
+        restoreInventory(next);
+        duplicateProductIndexes.clear();
+        updateUndoRedoButtons();
+        setStatus(QStringLiteral("Redo complete."));
+        refreshTable();
     });
 
     QObject::connect(themeComboBox, &QComboBox::currentIndexChanged, [&](int index)
@@ -1692,6 +1932,7 @@ void renderUI(const char* inventoryFilePath)
             return;
         }
 
+        const QVector<product> beforeDelete = captureInventory();
         std::sort(selectedIndexes.begin(), selectedIndexes.end(), std::greater<int>());
 
         bool deleted = true;
@@ -1702,6 +1943,11 @@ void renderUI(const char* inventoryFilePath)
 
         selectedIndex = -1;
         selectedIndexes.clear();
+        duplicateProductIndexes.clear();
+        if (deleted)
+        {
+            rememberBeforeChange(beforeDelete);
+        }
         setStatus(deleted
             ? texts[currentLanguage].productDeleted
             : texts[currentLanguage].invalidInput);
@@ -1739,8 +1985,11 @@ void renderUI(const char* inventoryFilePath)
         item.price = static_cast<float>(addPriceSpinBox->value());
         item.quantity = addQuantitySpinBox->value();
 
+        const QVector<product> beforeAdd = captureInventory();
         if (addNewProduct(item.name, item.price, item.quantity))
         {
+            rememberBeforeChange(beforeAdd);
+            duplicateProductIndexes.clear();
             addNameEdit->clear();
             addPriceSpinBox->setValue(1.0);
             addQuantitySpinBox->setValue(1);
@@ -1761,6 +2010,7 @@ void renderUI(const char* inventoryFilePath)
             return;
         }
 
+        const QVector<product> beforeUpdate = captureInventory();
         bool updated = true;
         for (int index : selectedIndexes)
         {
@@ -1770,6 +2020,8 @@ void renderUI(const char* inventoryFilePath)
 
         if (updated)
         {
+            rememberBeforeChange(beforeUpdate);
+            duplicateProductIndexes.clear();
             setStatus(texts[currentLanguage].quantityUpdated);
             refreshTable();
         }
@@ -1791,6 +2043,7 @@ void renderUI(const char* inventoryFilePath)
 
     QObject::connect(applySortButton, &QPushButton::clicked, [&]()
     {
+        const QVector<product> beforeSort = captureInventory();
         const bool sorted = sortInventory(
             sortFieldComboBox->currentIndex() == 0 ? sortByPrice : sortByQuantity,
             sortAlgorithmComboBox->currentIndex() == 0
@@ -1800,6 +2053,11 @@ void renderUI(const char* inventoryFilePath)
 
         selectedIndex = -1;
         selectedIndexes.clear();
+        duplicateProductIndexes.clear();
+        if (sorted)
+        {
+            rememberBeforeChange(beforeSort);
+        }
         setStatus(sorted ? texts[currentLanguage].sorted : texts[currentLanguage].bogoBlocked);
         refreshTable();
     });
@@ -1813,15 +2071,39 @@ void renderUI(const char* inventoryFilePath)
         );
     });
 
+    QObject::connect(duplicateDetectorButton, &QPushButton::clicked, [&]()
+    {
+        duplicateProductIndexes = findDuplicateProductIndexes();
+        selectedIndexes = duplicateProductIndexes;
+        selectedIndex = selectedIndexes.isEmpty() ? -1 : selectedIndexes.front();
+        searchNameEdit->clear();
+        priceRangeSlider->setValues(
+            priceRangeSlider->minimum(),
+            priceRangeSlider->maximum()
+        );
+        quantityRangeSlider->setValues(
+            quantityRangeSlider->minimum(),
+            quantityRangeSlider->maximum()
+        );
+        updateSliderLabels();
+        setStatus(duplicateProductIndexes.isEmpty()
+            ? noDuplicateProductsText()
+            : duplicateProductsFoundText(duplicateProductIndexes.size()));
+        refreshTable();
+    });
+
     QObject::connect(reloadButton, &QPushButton::clicked, [&]()
     {
+        const QVector<product> beforeReload = captureInventory();
+        const bool loaded = loadInventoryFromFile(inventoryFilePath);
         selectedIndex = -1;
         selectedIndexes.clear();
-        setStatus(
-            loadInventoryFromFile(inventoryFilePath)
-                ? texts[currentLanguage].loaded
-                : texts[currentLanguage].invalidInput
-        );
+        duplicateProductIndexes.clear();
+        if (loaded)
+        {
+            rememberBeforeChange(beforeReload);
+        }
+        setStatus(loaded ? texts[currentLanguage].loaded : texts[currentLanguage].invalidInput);
         refreshTable();
     });
 
@@ -1829,6 +2111,7 @@ void renderUI(const char* inventoryFilePath)
     languageComboBox->setCurrentIndex(currentLanguage);
     app.setStyleSheet(createStyleSheet(themes[currentTheme]));
     applyLanguage();
+    updateUndoRedoButtons();
     setStatus(texts[currentLanguage].ready);
     refreshTable();
 
