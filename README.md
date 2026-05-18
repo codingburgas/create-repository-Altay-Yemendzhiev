@@ -32,6 +32,7 @@
   - [Installation](#installation)
   - [Building](#building)
   - [Tests](#tests)
+  - [Portable EXE](#portable-exe)
 - [Project Structure](#project-structure)
 - [Documentation](#documentation)
 - [Team Roles](#team-roles)
@@ -130,6 +131,24 @@ cmake --build build --target InventoryTests
 .\build\InventoryTests.exe
 ```
 
+### Portable EXE
+
+To create a double-clickable folder and zip with the Qt DLLs and assets:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\package.ps1
+```
+
+The script creates:
+
+```text
+build\LapisTechnologiesPortable\LapisTechnologies.exe
+build\LapisTechnologiesPortable.zip
+```
+
+Keep the whole `LapisTechnologiesPortable` folder together when sharing it.
+The `.exe` needs the Qt DLLs and `assets/` folder beside it.
+
 ## Project Structure
 
 ```text
@@ -138,6 +157,8 @@ project-root/
 |-- README.md
 |-- CONVENTIONAL_COMMITS.md
 |-- main.cpp
+|-- scripts/
+|   `-- package.ps1
 |-- presentationLayer/
 |   |-- presentation.h
 |   `-- presentation.cpp
