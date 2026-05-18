@@ -224,6 +224,31 @@ void quickSortByQuantity(product products[], int count)
 }
 
 /*
+ * Purpose: Sorts products using Bubble Sort.
+ * Parameters: products - product array to sort, count - number of products,
+ *             field - product field used for comparison.
+ * Return value: None.
+ */
+void bubbleSortProducts(product products[], int count, sortField field)
+{
+    if (products == nullptr || count <= 1)
+    {
+        return;
+    }
+
+    for (int i = 0; i < count - 1; ++i)
+    {
+        for (int j = 0; j < count - i - 1; ++j)
+        {
+            if (!comesBeforeOrEqual(products[j], products[j + 1], field))
+            {
+                swapProducts(&products[j], &products[j + 1]);
+            }
+        }
+    }
+}
+
+/*
  * Purpose: Sorts a small product array using Bogo Sort.
  * Parameters: products - product array to sort, count - number of products,
  *             field - product field used for comparison.
@@ -311,9 +336,79 @@ int linearSearchByQuantity(
 }
 
 /*
+ * Purpose: Finds a product by price using Binary Search.
+ * Parameters: products - sorted product array to search, count - number of products,
+ *             targetPrice - price to find.
+ * Return value: Matching index when found, otherwise -1.
+ */
+int binarySearchByPrice(product products[], int count, float targetPrice)
+{
+    if (products == nullptr)
+    {
+        return -1;
+    }
+
+    int low = 0;
+    int high = count - 1;
+
+    while (low <= high)
+    {
+        int mid = low + (high - low) / 2;
+        if (std::abs(products[mid].price - targetPrice) < 0.001f)
+        {
+            return mid;
+        }
+        if (products[mid].price < targetPrice)
+        {
+            low = mid + 1;
+        }
+        else
+        {
+            high = mid - 1;
+        }
+    }
+
+    return -1;
+}
+
+/*
+ * Purpose: Finds a product by quantity using Binary Search.
+ * Parameters: products - sorted product array to search, count - number of products,
+ *             targetQuantity - quantity to find.
+ * Return value: Matching index when found, otherwise -1.
+ */
+int binarySearchByQuantity(product products[], int count, int targetQuantity)
+{
+    if (products == nullptr)
+    {
+        return -1;
+    }
+
+    int low = 0;
+    int high = count - 1;
+
+    while (low <= high)
+    {
+        int mid = low + (high - low) / 2;
+        if (products[mid].quantity == targetQuantity)
+        {
+            return mid;
+        }
+        if (products[mid].quantity < targetQuantity)
+        {
+            low = mid + 1;
+        }
+        else
+        {
+            high = mid - 1;
+        }
+    }
+
+    return -1;
+}
+
+/*
  * Purpose: Recursively calculates the total inventory value.
- * Parameters: products - product array to total, count - number of products.
- * Return value: Sum of price multiplied by quantity for all products.
  */
 float calculateTotalValueRecursive(product products[], int count)
 {
@@ -324,6 +419,73 @@ float calculateTotalValueRecursive(product products[], int count)
 
     return (products[count - 1].price * static_cast<float>(products[count - 1].quantity))
         + calculateTotalValueRecursive(products, count - 1);
+}
+
+static bool namesAreEqualIgnoreCase(const char* a, const char* b)
+{
+    if (a == nullptr || b == nullptr)
+    {
+        return a == b;
+    }
+
+    while (*a != '\0' && *b != '\0')
+    {
+        if (std::tolower(static_cast<unsigned char>(*a)) !=
+            std::tolower(static_cast<unsigned char>(*b)))
+        {
+            return false;
+        }
+        ++a;
+        ++b;
+    }
+
+    return *a == *b;
+}
+
+/*
+ * Purpose: Finds duplicate product names in the inventory.
+ * Parameters: duplicateIndexes - output array to store indexes of duplicates,
+ *             maxDuplicates - capacity of the output array.
+ * Return value: Number of duplicates found.
+ */
+int findDuplicateProducts(int duplicateIndexes[], int maxDuplicates)
+{
+    product* products = getInventory();
+    const int count = getProductCount();
+    int duplicateCount = 0;
+
+    for (int i = 0; i < count; ++i)
+    {
+        const char* firstName = products[i].name;
+
+        for (int j = i + 1; j < count; ++j)
+        {
+            const char* secondName = products[j].name;
+
+            if (namesAreEqualIgnoreCase(firstName, secondName))
+            {
+                // Found a duplicate at index j.
+                // Check if we already have it to avoid duplicates in the result.
+                bool alreadyAdded = false;
+                for (int k = 0; k < duplicateCount; ++k)
+                {
+                    if (duplicateIndexes[k] == j)
+                    {
+                        alreadyAdded = true;
+                        break;
+                    }
+                }
+
+                if (!alreadyAdded && duplicateCount < maxDuplicates)
+                {
+                    duplicateIndexes[duplicateCount] = j;
+                    ++duplicateCount;
+                }
+            }
+        }
+    }
+
+    return duplicateCount;
 }
 
 /*
@@ -394,6 +556,12 @@ bool sortInventory(sortField field, sortAlgorithm algorithm)
     if (algorithm == bogoSortAlgorithm)
     {
         return bogoSortProducts(products, count, field);
+    }
+
+    if (algorithm == bubbleSortAlgorithm)
+    {
+        bubbleSortProducts(products, count, field);
+        return true;
     }
 
     quickSortProducts(products, 0, count - 1, field);

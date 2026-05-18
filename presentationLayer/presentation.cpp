@@ -58,6 +58,7 @@ struct languageText
     QString sortByPrice;
     QString sortByQuantity;
     QString quickSort;
+    QString bubbleSort;
     QString bogoSort;
     QString applySort;
     QString totalValue;
@@ -127,6 +128,7 @@ static QVector<languageText> createTexts()
             QStringLiteral("Price"),
             QStringLiteral("Quantity"),
             QStringLiteral("Quick Sort"),
+            QStringLiteral("Bubble Sort"),
             QStringLiteral("Bogo Sort"),
             QStringLiteral("Apply sort"),
             QStringLiteral("Total value"),
@@ -175,6 +177,7 @@ static QVector<languageText> createTexts()
             QStringLiteral("Цена"),
             QStringLiteral("Количество"),
             QStringLiteral("Quick Sort"),
+            QStringLiteral("Bubble Sort"),
             QStringLiteral("Bogo Sort"),
             QStringLiteral("Сортирай"),
             QStringLiteral("Обща стойност"),
@@ -220,6 +223,7 @@ static QVector<languageText> createTexts()
             QStringLiteral("Precio"),
             QStringLiteral("Cantidad"),
             QStringLiteral("Quick Sort"),
+            QStringLiteral("Bubble Sort"),
             QStringLiteral("Bogo Sort"),
             QStringLiteral("Ordenar"),
             QStringLiteral("Valor total"),
@@ -265,6 +269,7 @@ static QVector<languageText> createTexts()
             QStringLiteral("Prix"),
             QStringLiteral("Quantité"),
             QStringLiteral("Quick Sort"),
+            QStringLiteral("Bubble Sort"),
             QStringLiteral("Bogo Sort"),
             QStringLiteral("Trier"),
             QStringLiteral("Valeur totale"),
@@ -310,6 +315,7 @@ static QVector<languageText> createTexts()
             QStringLiteral("Preis"),
             QStringLiteral("Menge"),
             QStringLiteral("Quick Sort"),
+            QStringLiteral("Bubble Sort"),
             QStringLiteral("Bogo Sort"),
             QStringLiteral("Sortieren"),
             QStringLiteral("Gesamtwert"),
@@ -355,6 +361,7 @@ static QVector<languageText> createTexts()
             QStringLiteral("Fiyat"),
             QStringLiteral("Adet"),
             QStringLiteral("Quick Sort"),
+            QStringLiteral("Bubble Sort"),
             QStringLiteral("Bogo Sort"),
             QStringLiteral("Sırala"),
             QStringLiteral("Toplam değer"),
@@ -400,6 +407,7 @@ static QVector<languageText> createTexts()
             QStringLiteral("Цена"),
             QStringLiteral("Количество"),
             QStringLiteral("Quick Sort"),
+            QStringLiteral("Bubble Sort"),
             QStringLiteral("Bogo Sort"),
             QStringLiteral("Сортировать"),
             QStringLiteral("Общая стоимость"),
@@ -445,6 +453,7 @@ static QVector<languageText> createTexts()
             QStringLiteral("מחיר"),
             QStringLiteral("כמות"),
             QStringLiteral("Quick Sort"),
+            QStringLiteral("Bubble Sort"),
             QStringLiteral("Bogo Sort"),
             QStringLiteral("מיין"),
             QStringLiteral("ערך כולל"),
@@ -1376,43 +1385,17 @@ void renderUI(const char* inventoryFilePath)
 
     auto findDuplicateProductIndexes = [&]()
     {
-        QVector<int> duplicateIndexes;
+        int duplicateIndexes[maxProducts] = {};
+        const int duplicateCount = findDuplicateProducts(duplicateIndexes, maxProducts);
 
-        for (int i = 0; i < getProductCountForDisplay(); ++i)
+        QVector<int> result;
+        for (int i = 0; i < duplicateCount; ++i)
         {
-            product first = {};
-            if (!getProductForDisplay(i, &first))
-            {
-                continue;
-            }
-
-            const QString firstName = productDisplayName(first).trimmed().toCaseFolded();
-            if (firstName.isEmpty())
-            {
-                continue;
-            }
-
-            for (int j = i + 1; j < getProductCountForDisplay(); ++j)
-            {
-                product second = {};
-                if (!getProductForDisplay(j, &second))
-                {
-                    continue;
-                }
-
-                const QString secondName = productDisplayName(second).trimmed().toCaseFolded();
-                if (firstName == secondName)
-                {
-                    if (!duplicateIndexes.contains(j))
-                    {
-                        duplicateIndexes.push_back(j);
-                    }
-                }
-            }
+            result.push_back(duplicateIndexes[i]);
         }
 
-        std::sort(duplicateIndexes.begin(), duplicateIndexes.end());
-        return duplicateIndexes;
+        std::sort(result.begin(), result.end());
+        return result;
     };
 
     auto priceCents = [](float price)
@@ -1863,7 +1846,7 @@ void renderUI(const char* inventoryFilePath)
         sortFieldComboBox->clear();
         sortFieldComboBox->addItems({ text.sortByPrice, text.sortByQuantity });
         sortAlgorithmComboBox->clear();
-        sortAlgorithmComboBox->addItems({ text.quickSort, text.bogoSort });
+        sortAlgorithmComboBox->addItems({ text.quickSort, text.bubbleSort, text.bogoSort });
         applySortButton->setText(text.applySort);
 
         saveButton->setText(text.save);
@@ -2184,11 +2167,21 @@ void renderUI(const char* inventoryFilePath)
     QObject::connect(applySortButton, &QPushButton::clicked, [&]()
     {
         const QVector<product> beforeSort = captureInventory();
+
+        sortAlgorithm algorithm = quickSortAlgorithm;
+        const int algoIndex = sortAlgorithmComboBox->currentIndex();
+        if (algoIndex == 1)
+        {
+            algorithm = bubbleSortAlgorithm;
+        }
+        else if (algoIndex == 2)
+        {
+            algorithm = bogoSortAlgorithm;
+        }
+
         const bool sorted = sortInventory(
             sortFieldComboBox->currentIndex() == 0 ? sortByPrice : sortByQuantity,
-            sortAlgorithmComboBox->currentIndex() == 0
-                ? quickSortAlgorithm
-                : bogoSortAlgorithm
+            algorithm
         );
 
         selectedIndex = -1;

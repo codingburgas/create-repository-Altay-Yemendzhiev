@@ -16,6 +16,7 @@ enum sortField
 enum sortAlgorithm
 {
     quickSortAlgorithm,
+    bubbleSortAlgorithm,
     bogoSortAlgorithm
 };
 
@@ -32,6 +33,14 @@ void quickSortByPrice(product products[], int count);
  * Return value: None.
  */
 void quickSortByQuantity(product products[], int count);
+
+/*
+ * Purpose: Sorts products using Bubble Sort.
+ * Parameters: products - product array to sort, count - number of products,
+ *             field - product field used for comparison.
+ * Return value: None.
+ */
+void bubbleSortProducts(product products[], int count, sortField field);
 
 /*
  * Purpose: Sorts a small product array using Bogo Sort.
@@ -63,11 +72,35 @@ int linearSearchByQuantity(
 );
 
 /*
+ * Purpose: Finds a product by price using Binary Search.
+ * Parameters: products - sorted product array to search, count - number of products,
+ *             targetPrice - price to find.
+ * Return value: Matching index when found, otherwise -1.
+ */
+int binarySearchByPrice(product products[], int count, float targetPrice);
+
+/*
+ * Purpose: Finds a product by quantity using Binary Search.
+ * Parameters: products - sorted product array to search, count - number of products,
+ *             targetQuantity - quantity to find.
+ * Return value: Matching index when found, otherwise -1.
+ */
+int binarySearchByQuantity(product products[], int count, int targetQuantity);
+
+/*
  * Purpose: Recursively calculates the total inventory value.
  * Parameters: products - product array to total, count - number of products.
  * Return value: Sum of price multiplied by quantity for all products.
  */
 float calculateTotalValueRecursive(product products[], int count);
+
+/*
+ * Purpose: Finds duplicate product names in the inventory.
+ * Parameters: duplicateIndexes - output array to store indexes of duplicates,
+ *             maxDuplicates - capacity of the output array.
+ * Return value: Number of duplicates found.
+ */
+int findDuplicateProducts(int duplicateIndexes[], int maxDuplicates);
 
 /*
  * Purpose: Validates user input and adds a product through the data layer.

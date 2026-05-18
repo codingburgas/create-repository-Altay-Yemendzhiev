@@ -22,3 +22,5 @@
 - Promoted the active project files to a layered repository structure.
 - Added `.gitignore` rules for local build and IDE files.
 - Added Qt table controls for filtering, sorting, editing, and selecting stock.
+- Implemented Bubble Sort and Binary Search (by price and quantity) in the logic layer.
+- Refactored duplicate detection into the logic layer to improve architectural separation.

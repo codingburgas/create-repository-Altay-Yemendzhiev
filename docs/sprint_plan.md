@@ -16,3 +16,5 @@ folder structure.
 | Add a realistic product CSV dataset | Back-End Developer | Done |
 | Add basic tests for data and logic functions | Back-End Developer | Done |
 | Update README instructions | Scrum Master | Done |
+| Implement Bubble Sort and Binary Search | Back-End Developer | Done |
+| Move Duplicate Detection to Logic layer | Back-End Developer | Done |
