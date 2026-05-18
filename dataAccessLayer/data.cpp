@@ -1,4 +1,4 @@
-#include "../include/data.h"
+#include "data.h"
 
 #include <cstdio>
 #include <cstring>

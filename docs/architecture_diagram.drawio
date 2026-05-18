@@ -6,22 +6,22 @@
       <root>
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>
-        <mxCell id="presentation" value="Presentation Layer&#xa;src/presentation.cpp&#xa;Terminal menu and output"
+        <mxCell id="presentation" value="Presentation Layer&#xa;presentationLayer/presentation.cpp&#xa;Qt table interface and controls"
           style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;"
           vertex="1" parent="1">
           <mxGeometry x="260" y="80" width="300" height="90" as="geometry"/>
         </mxCell>
-        <mxCell id="logic" value="Logic Layer&#xa;src/logic.cpp&#xa;Validation, sort, search, recursion"
+        <mxCell id="logic" value="Service Layer&#xa;serviceLayer/logic.cpp&#xa;Validation, sort, search, recursion"
           style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;"
           vertex="1" parent="1">
           <mxGeometry x="260" y="240" width="300" height="90" as="geometry"/>
         </mxCell>
-        <mxCell id="data" value="Data Layer&#xa;src/data.cpp&#xa;Inventory array and CSV access"
+        <mxCell id="data" value="Data Access Layer&#xa;dataAccessLayer/data.cpp&#xa;Inventory array and CSV access"
           style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;"
           vertex="1" parent="1">
           <mxGeometry x="260" y="400" width="300" height="90" as="geometry"/>
         </mxCell>
-        <mxCell id="csv" value="resources/products.csv&#xa;80 product records"
+        <mxCell id="csv" value="assets/products.csv&#xa;80 product records"
           style="shape=cylinder3d;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f8cecc;strokeColor=#b85450;"
           vertex="1" parent="1">
           <mxGeometry x="610" y="400" width="170" height="90" as="geometry"/>

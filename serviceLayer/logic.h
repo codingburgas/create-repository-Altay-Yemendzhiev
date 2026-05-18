@@ -5,7 +5,7 @@
  * Logic layer for validating, searching, sorting, and totaling inventory data.
  */
 
-#include "data.h"
+#include "../dataAccessLayer/data.h"
 
 enum sortField
 {

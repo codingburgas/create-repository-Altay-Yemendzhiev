@@ -1,4 +1,4 @@
-#include "../include/data.h"
+#include "../dataAccessLayer/data.h"
 
 #include <cassert>
 #include <cstring>
@@ -15,7 +15,7 @@ static product makeProduct(const char* name, float price, int quantity)
 
 void runDataTests()
 {
-    assert(loadFromFile("resources/products.csv"));
+    assert(loadFromFile("assets/products.csv"));
     assert(getProductCount() == 80);
 
     product loadedItem = {};

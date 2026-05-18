@@ -14,20 +14,25 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets)
 qt_standard_project_setup()
 
 qt_add_executable(InventoryManager
-    src/data.cpp
-    src/logic.cpp
-    src/presentation.cpp
-    src/main.cpp
+    main.cpp
+    presentationLayer/presentation.cpp
+    serviceLayer/logic.cpp
+    dataAccessLayer/data.cpp
 )
 
-target_include_directories(InventoryManager PRIVATE include)
+target_include_directories(InventoryManager PRIVATE
+    ${CMAKE_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/presentationLayer
+    ${CMAKE_SOURCE_DIR}/serviceLayer
+    ${CMAKE_SOURCE_DIR}/dataAccessLayer
+)
 
 target_link_libraries(InventoryManager PRIVATE Qt6::Widgets)
 
 add_custom_command(TARGET InventoryManager POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/resources
-        $<TARGET_FILE_DIR:InventoryManager>/resources
+        ${CMAKE_SOURCE_DIR}/assets
+        $<TARGET_FILE_DIR:InventoryManager>/assets
 )
 
 if (WIN32 AND TARGET Qt6::windeployqt)
@@ -42,11 +47,15 @@ endif()
 add_executable(InventoryTests
     tests/data_tests.cpp
     tests/logic_tests.cpp
-    src/data.cpp
-    src/logic.cpp
+    dataAccessLayer/data.cpp
+    serviceLayer/logic.cpp
 )
 
-target_include_directories(InventoryTests PRIVATE include)
+target_include_directories(InventoryTests PRIVATE
+    ${CMAKE_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/serviceLayer
+    ${CMAKE_SOURCE_DIR}/dataAccessLayer
+)
 
 if (MSVC)
     target_compile_options(InventoryManager PRIVATE /utf-8)
@@ -55,6 +64,6 @@ endif()
 
 add_custom_command(TARGET InventoryTests POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/resources
-        $<TARGET_FILE_DIR:InventoryTests>/resources
+        ${CMAKE_SOURCE_DIR}/assets
+        $<TARGET_FILE_DIR:InventoryTests>/assets
 )

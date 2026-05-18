@@ -1,5 +1,5 @@
-#include "../include/logic.h"
-#include "../include/presentation.h"
+#include "serviceLayer/logic.h"
+#include "presentationLayer/presentation.h"
 
 #include <fstream>
 
@@ -22,10 +22,10 @@ static bool canReadFile(const char* filePath)
 static const char* findDefaultInventoryFile()
 {
     static const char* paths[] = {
-        "resources/products.csv",
-        "../resources/products.csv",
-        "../../resources/products.csv",
-        "../../../resources/products.csv"
+        "assets/products.csv",
+        "../assets/products.csv",
+        "../../assets/products.csv",
+        "../../../assets/products.csv"
     };
 
     for (const char* path : paths)
@@ -40,7 +40,7 @@ static const char* findDefaultInventoryFile()
 }
 
 /*
- * Purpose: Runs the terminal inventory application.
+ * Purpose: Runs the inventory management application.
  * Parameters: argc - argument count, argv - optional CSV path as argv[1].
  * Return value: zero on normal exit.
  */

@@ -1,6 +1,6 @@
-#include "../include/presentation.h"
+#include "presentation.h"
 
-#include "../include/logic.h"
+#include "../serviceLayer/logic.h"
 
 #include <QApplication>
 #include <QBrush>
@@ -648,12 +648,12 @@ static QString createStyleSheet(const themeDefinition& theme)
         "    background: %10;"
         "}"
         "QSpinBox::up-arrow, QDoubleSpinBox::up-arrow {"
-        "    image: url(resources/icons/spin-up.svg);"
+        "    image: url(assets/icons/spin-up.svg);"
         "    width: 12px;"
         "    height: 12px;"
         "}"
         "QSpinBox::down-arrow, QDoubleSpinBox::down-arrow {"
-        "    image: url(resources/icons/spin-down.svg);"
+        "    image: url(assets/icons/spin-down.svg);"
         "    width: 12px;"
         "    height: 12px;"
         "}"

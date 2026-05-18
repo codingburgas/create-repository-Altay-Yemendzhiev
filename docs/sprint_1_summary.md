@@ -3,9 +3,10 @@
 ## Completed
 
 - Cleaned the repository structure.
-- Kept one root-level `src`, `include`, `tests`, `docs`, and `resources` layout.
-- Improved the terminal app so each action opens a clean screen.
-- Added paging for the product table.
+- Reorganized the repository into `presentationLayer`, `serviceLayer`,
+  `dataAccessLayer`, `tests`, `docs`, and `assets`.
+- Replaced the terminal flow with a clean Qt desktop interface.
+- Added a searchable product table.
 - Added update and delete actions.
 - Added a focused inventory CSV with 80 products.
 - Added basic tests for data and logic behavior.
@@ -18,6 +19,6 @@
 
 ## Solutions
 
-- Promoted the active project files to the repository root.
+- Promoted the active project files to a layered repository structure.
 - Added `.gitignore` rules for local build and IDE files.
-- Added a screen clear helper and paged table output.
+- Added Qt table controls for filtering, sorting, editing, and selecting stock.

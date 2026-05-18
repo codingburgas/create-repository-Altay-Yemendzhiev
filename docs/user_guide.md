@@ -17,4 +17,4 @@ Run the application to open the Qt desktop window.
 - Use Save to write the current inventory to the CSV file.
 - Use Reload to read products from the CSV file again.
 
-The default data file is `resources/products.csv`.
+The default data file is `assets/products.csv`.
