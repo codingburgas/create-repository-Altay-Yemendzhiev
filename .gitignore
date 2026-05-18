@@ -23,6 +23,10 @@ cmake_install.cmake
 *.pdb
 *.log
 
+# Local launch/package helper scripts
+*.bat
+*.ps1
+
 # CMake dependency downloads
 _deps/
 build/_deps/
