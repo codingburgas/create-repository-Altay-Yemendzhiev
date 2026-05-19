@@ -85,6 +85,19 @@ The presentation layer does not access the data layer directly. UI actions go
 through `serviceLayer/logic.h`, and the service layer uses
 `dataAccessLayer/data.h` for storage.
 
+### Technology Stack
+
+<div align="center">
+  <img src="assets/tech_stack/image8.png" height="60" alt="Technology Logo 1" style="margin: 0 10px;">
+  <img src="assets/tech_stack/image9.png" height="60" alt="Technology Logo 2" style="margin: 0 10px;">
+  <img src="assets/tech_stack/image10.png" height="60" alt="Technology Logo 3" style="margin: 0 10px;">
+  <img src="assets/tech_stack/image11.png" height="60" alt="Technology Logo 4" style="margin: 0 10px;">
+  <img src="assets/tech_stack/image12.png" height="60" alt="Technology Logo 5" style="margin: 0 10px;">
+  <img src="assets/tech_stack/image13.png" height="60" alt="Technology Logo 6" style="margin: 0 10px;">
+  <img src="assets/tech_stack/image14.png" height="60" alt="Technology Logo 7" style="margin: 0 10px;">
+  <img src="assets/tech_stack/image15.png" height="60" alt="Technology Logo 8" style="margin: 0 10px;">
+</div>
+
 ## Getting Started
 
 ### Prerequisites
