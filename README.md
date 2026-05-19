@@ -193,6 +193,8 @@ source drops are ignored.
 
 ## Documentation
 
+- [Project Documentation (Word)](<documentation/Lapis Technologies.docx>)
+- [Project Presentation (PowerPoint)](<documentation/Lapis Technologies.pptx>)
 - [User Guide](docs/user_guide.md)
 - [Back-End Integration](docs/backend_integration.md)
 - [Sprint Plan](docs/sprint_plan.md)
@@ -202,7 +204,7 @@ source drops are ignored.
 
 ## Team Roles
 
-- **Scrum Master** - project tracking, documentation, GitHub project board
-- **Back-End Developer 1** - data access layer and CSV handling
-- **Back-End Developer 2** - sorting, searching, recursion, validation
-- **Front-End Developer** - Qt Widgets interface
+- **Altay Yemendzhiev** (Scrum Master) - project tracking, documentation, GitHub project board
+- **Kristian Dinev** (Back-End Developer) - data access layer and CSV handling
+- **Artyom Bock** (Back-End Developer) - sorting, searching, recursion, validation
+- **Zlatin Kostov** (Front-End Developer) - Qt Widgets interface
