@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="assets/logo.png" alt="Lapis Technologies Logo" width="200" />
+
 # Lapis Technologies
 
 </div>

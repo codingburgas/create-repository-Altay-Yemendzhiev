@@ -20,6 +20,7 @@
 #include <QModelIndex>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QPixmap>
 #include <QPushButton>
 #include <QColor>
 #include <QSignalBlocker>
@@ -980,8 +981,9 @@ void renderUI(const char* inventoryFilePath)
     logoFrame->setFixedSize(48, 48);
     QVBoxLayout* logoLayout = new QVBoxLayout(logoFrame);
     logoLayout->setContentsMargins(0, 0, 0, 0);
-    QLabel* logoLabel = new QLabel(QStringLiteral("LT"), logoFrame);
-    logoLabel->setObjectName(QStringLiteral("logoText"));
+    QLabel* logoLabel = new QLabel(logoFrame);
+    QPixmap logoPixmap("assets/logo.png");
+    logoLabel->setPixmap(logoPixmap.scaled(48, 48, Qt::KeepAspectRatio, Qt::SmoothTransformation));
     logoLabel->setAlignment(Qt::AlignCenter);
     logoLayout->addWidget(logoLabel);
 
