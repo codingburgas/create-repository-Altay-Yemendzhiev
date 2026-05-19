@@ -88,7 +88,6 @@ through `serviceLayer/logic.h`, and the service layer uses
 ### Technology Stack
 
 <div align="center">
-  <img src="assets/tech_stack/image8.png" height="60" alt="Technology Logo 1" style="margin: 0 10px;">
   <img src="assets/tech_stack/image9.png" height="60" alt="Technology Logo 2" style="margin: 0 10px;">
   <img src="assets/tech_stack/image10.png" height="60" alt="Technology Logo 3" style="margin: 0 10px;">
   <img src="assets/tech_stack/image11.png" height="60" alt="Technology Logo 4" style="margin: 0 10px;">
